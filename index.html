@@ -3,234 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WSI Embedding Analysis · TCGA-CHOL</title>
-<style>
-  :root {
-    --bg: #0e1612;
-    --panel: #16201b;
-    --panel-2: #1a2620;
-    --text: #d6e4dc;
-    --muted: #8aa39a;
-    --accent: #5eead4;
-    --accent-dim: #3fb8a5;
-    --border: #1f2c25;
-    --warn: #f8a07b;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui,
-                 "Helvetica Neue", Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    font-size: 16px;
-    -webkit-font-smoothing: antialiased;
-  }
-  code, pre, .mono {
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
-    font-size: 0.92em;
-  }
-
-  /* ---- NAV ---- */
-  nav {
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(14, 22, 18, 0.85);
-    backdrop-filter: saturate(150%) blur(10px);
-    -webkit-backdrop-filter: saturate(150%) blur(10px);
-    border-bottom: 1px solid var(--border);
-  }
-  .nav-inner {
-    max-width: 1080px; margin: 0 auto;
-    padding: 14px 28px;
-    display: flex; align-items: center; gap: 36px;
-    flex-wrap: wrap;
-  }
-  .brand {
-    color: var(--accent); font-weight: 600; letter-spacing: 0.04em;
-    font-size: 0.95rem; text-decoration: none;
-  }
-  .brand::before {
-    content: "▍"; color: var(--accent); margin-right: 6px;
-  }
-  .nav-links {
-    display: flex; gap: 24px; margin-left: auto;
-    flex-wrap: wrap;
-  }
-  .nav-links a {
-    color: var(--muted); text-decoration: none;
-    font-size: 0.9rem; letter-spacing: 0.02em;
-    transition: color 0.15s ease;
-  }
-  .nav-links a:hover { color: var(--accent); }
-
-  /* ---- LAYOUT ---- */
-  main {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: 0 28px 120px;
-  }
-  section {
-    padding: 80px 0 24px;
-    border-top: 1px solid var(--border);
-  }
-  section:first-of-type { border-top: 0; }
-  h1, h2, h3 { color: var(--text); font-weight: 600; letter-spacing: -0.01em; }
-  h1 { font-size: 2.4rem; line-height: 1.15; margin: 0 0 12px; }
-  h2 {
-    font-size: 1.5rem; margin: 0 0 24px;
-    display: flex; align-items: center; gap: 14px;
-  }
-  h2::before {
-    content: ""; display: inline-block;
-    width: 6px; height: 22px; background: var(--accent);
-    border-radius: 2px;
-  }
-  h3 {
-    font-size: 1.05rem; margin: 28px 0 12px;
-    color: var(--accent);
-    font-weight: 500;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-  }
-  p { margin: 0 0 16px; color: var(--text); }
-  a { color: var(--accent); }
-
-  /* ---- HERO ---- */
-  .hero {
-    padding-top: 100px;
-    padding-bottom: 60px;
-    border-top: 0;
-  }
-  .eyebrow {
-    color: var(--accent); font-size: 0.8rem;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    margin-bottom: 22px;
-  }
-  .subtitle {
-    color: var(--muted); font-size: 1.1rem;
-    margin: 0 0 36px; max-width: 720px;
-  }
-  .stat-row {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-top: 32px;
-  }
-  @media (max-width: 640px) { .stat-row { grid-template-columns: 1fr; } }
-  .stat {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 8px; padding: 22px 24px;
-  }
-  .stat .label {
-    color: var(--muted); font-size: 0.75rem;
-    letter-spacing: 0.14em; text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-  .stat .value {
-    color: var(--accent); font-size: 2rem; font-weight: 600;
-    font-feature-settings: "tnum";
-  }
-  .stat .unit { color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
-
-  /* ---- TABLES ---- */
-  .table-wrap { overflow-x: auto; margin: 18px 0 28px; }
-  table {
-    width: 100%; border-collapse: collapse;
-    background: var(--panel);
-    border: 1px solid var(--border); border-radius: 8px;
-    overflow: hidden; font-size: 0.94rem;
-  }
-  th, td {
-    padding: 11px 16px; text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-  th {
-    color: var(--muted); font-weight: 500;
-    font-size: 0.78rem; letter-spacing: 0.08em;
-    text-transform: uppercase;
-    background: var(--panel-2);
-  }
-  tr:last-child td { border-bottom: 0; }
-  tbody tr:hover { background: var(--panel-2); }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .pill {
-    display: inline-block; padding: 2px 9px;
-    border-radius: 999px; font-size: 0.75rem;
-    border: 1px solid var(--border); color: var(--muted);
-  }
-  .pill.good { color: var(--accent); border-color: var(--accent-dim); }
-  .pill.bad { color: var(--warn); border-color: #5a3a2c; }
-
-  /* ---- CODE ---- */
-  pre {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 8px; padding: 18px 20px;
-    overflow-x: auto; margin: 16px 0;
-    color: var(--text);
-  }
-  p code, li code {
-    background: var(--panel); padding: 1px 6px;
-    border-radius: 4px; border: 1px solid var(--border);
-    font-size: 0.86em; color: var(--accent);
-  }
-
-  /* ---- FIGURES ---- */
-  .fig-grid {
-    display: grid; grid-template-columns: repeat(2, 1fr);
-    gap: 24px; margin: 24px 0;
-  }
-  @media (max-width: 760px) { .fig-grid { grid-template-columns: 1fr; } }
-  figure {
-    margin: 0; background: var(--panel);
-    border: 1px solid var(--border); border-radius: 8px;
-    overflow: hidden;
-  }
-  figure img { width: 100%; height: auto; display: block; background: #fff; }
-  figcaption {
-    padding: 12px 16px; color: var(--muted);
-    font-size: 0.86rem; border-top: 1px solid var(--border);
-  }
-  .fig-wide { margin: 24px 0; }
-  .fig-wide img {
-    width: 100%; height: auto; display: block;
-    border: 1px solid var(--border); border-radius: 8px;
-    background: var(--panel);
-  }
-  .fig-wide figcaption {
-    border: 0; padding: 10px 4px 0; background: transparent;
-  }
-
-  /* ---- MISC ---- */
-  ul { padding-left: 22px; }
-  ul li { margin-bottom: 6px; }
-  .callout {
-    background: var(--panel); border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px; padding: 14px 18px;
-    margin: 18px 0; color: var(--text);
-  }
-  footer {
-    margin-top: 80px; padding-top: 30px;
-    border-top: 1px solid var(--border);
-    color: var(--muted); font-size: 0.85rem;
-    text-align: center;
-  }
-  footer a { color: var(--muted); }
-  footer a:hover { color: var(--accent); }
-</style>
+<title>WSI Embedding Analysis · TCGA Pan-Cancer</title>
+<meta name="description" content="A thermal-safe, leakage-aware pipeline turning whole-slide image embeddings into honest classification and survival predictions on TCGA cohorts.">
+<link rel="stylesheet" href="assets/styles.css">
+<script>
+  // pre-paint theme to avoid flash
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="assets/app.js"></script>
 </head>
 <body>
 
 <nav>
   <div class="nav-inner">
-    <a href="#top" class="brand">WSI · CHOL</a>
+    <a href="index.html" class="brand">WSI · Pan-Cancer</a>
     <div class="nav-links">
-      <a href="#overview">Overview</a>
-      <a href="#methods">Methods</a>
-      <a href="#results">Results</a>
-      <a href="#figures">Figures</a>
-      <a href="#code">Code</a>
+      <a href="index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
     </div>
   </div>
 </nav>
@@ -239,313 +37,130 @@
 
   <!-- HERO -->
   <section class="hero">
-    <div class="eyebrow">TCGA-CHOL · UNI2 features · classical ML</div>
-    <h1>Predicting Tumor Grade from WSI Embeddings</h1>
+    <div class="eyebrow">TCGA pan-cancer · UNI2 features · classical ML + survival</div>
+    <h1>WSI Embeddings → Classification &amp; Survival</h1>
     <p class="subtitle">
-      A lightweight, thermal-safe pipeline that explores what pre-extracted
-      whole-slide image embeddings can actually predict on a small clinical cohort.
-      The story: a too-easy task gave fake-perfect results; switching to a harder,
-      balanced target produced an honest, statistically validated finding.
+      A thermal-safe, leakage-aware pipeline that turns pre-extracted whole-slide
+      image embeddings into honest predictions on small clinical cohorts.
+      Two findings: a validated tumor-grade signal on TCGA-CHOL
+      (AUC = 0.80, permutation p = 0.005), and a pan-cancer survival framework
+      using pooled leave-one-participant-out C-index with bootstrap CIs —
+      because 5-fold survival CV on n ≈ 50 produces noise, not signal.
     </p>
     <div class="stat-row">
       <div class="stat">
-        <div class="label">Best AUC (grade)</div>
-        <div class="value">0.80</div>
-        <div class="unit">KNN-5, leave-one-out CV</div>
+        <div class="label">Grade AUC · CHOL</div>
+        <div class="value" data-count="0.80" data-decimals="2">0.80</div>
+        <div class="unit">KNN-5, LOO, p = 0.005</div>
       </div>
       <div class="stat">
-        <div class="label">Permutation p</div>
-        <div class="value">0.005</div>
-        <div class="unit">200 label shuffles</div>
+        <div class="label">Survival cohort</div>
+        <div class="value" data-count="1608" data-decimals="0">1 608</div>
+        <div class="unit">patients across 8 cancers</div>
       </div>
       <div class="stat">
-        <div class="label">Cohort</div>
-        <div class="value">N = 26</div>
-        <div class="unit">balanced 13 low / 13 high</div>
+        <div class="label">Best survival C-index</div>
+        <div class="value" data-count="0.84" data-decimals="2">0.84</div>
+        <div class="unit">TCGA-ACC · 95 % CI [0.80, 0.89]</div>
       </div>
     </div>
   </section>
 
-  <!-- OVERVIEW -->
-  <section id="overview">
-    <h2>Overview</h2>
-    <p>
-      Foundation models like <strong>UNI2</strong> turn whole-slide histopathology images
-      into compact patch-level embeddings. The open question is: how well do those embeddings
-      transfer to clinically meaningful tasks on small TCGA cohorts, where you only have
-      tens of patients per cancer type?
-    </p>
-    <p>
-      This project benchmarks 13 classical classifiers on TCGA-CHOL (cholangiocarcinoma)
-      WSI embeddings across four prediction targets. The arc of the analysis matters as much
-      as the final number:
-    </p>
-    <ul>
-      <li>
-        <strong>Step 1 — Naïve setup.</strong> Predicting tumor vs normal tissue with
-        slide-level cross-validation gave AUC ≈ 1.00. Too perfect to be useful, and the
-        same 15 participants had matched tumor + normal slides — a textbook leakage risk.
-      </li>
-      <li>
-        <strong>Step 2 — Leakage-safe CV.</strong> Switched to GroupKFold by participant
-        so the same patient never appeared in both train and test. AUC stayed at 1.00 →
-        the task is simply <em>saturated</em> on UNI2 features, not leaky.
-      </li>
-      <li>
-        <strong>Step 3 — Harder target.</strong> Tumor <em>grade</em> (G1/G2 low vs G3/G4 high),
-        N = 26, perfectly balanced. KNN-5 achieved AUC = 0.80.
-      </li>
-      <li>
-        <strong>Step 4 — Statistical validation.</strong> 200-shuffle permutation test
-        produced 0 / 200 null AUCs above the baseline (p = 0.005). The result is real.
-      </li>
-    </ul>
-    <p>
-      Two additional targets were tested and discarded with documentation:
-      <span class="pill bad">BAP1 mutation</span> (AUC 0.64, too class-imbalanced)
-      and <span class="pill bad">PBRM1 mutation</span> (AUC 0.38, anti-correlated noise).
-      The mutation cohort is too small (N = 36, 7–8 positive) for that signal to surface.
-    </p>
-  </section>
-
-  <!-- METHODS -->
-  <section id="methods">
-    <h2>Methods</h2>
-
-    <h3>Data</h3>
-    <p>
-      59 whole-slide images from TCGA-CHOL: 39 tumor (sample type 01) and 20 normal
-      (sample type 11) across 44 unique participants, with 15 patients contributing matched
-      tumor + normal pairs. Patch-level embeddings (1,536-dim per patch, variable patches per
-      slide) were pre-extracted with the UNI2 foundation model.
-    </p>
-
-    <h3>Slide-level aggregation</h3>
-    <p>
-      Each variable-length patch matrix (N × 1536) is aggregated into a fixed slide vector.
-      The default "rich" aggregation concatenates six summary statistics — mean, std, P10,
-      P25, P75, P90 — yielding a 9,216-dim representation. The pipeline also supports plain
-      mean aggregation (1,536-dim).
-    </p>
-
-    <h3>Models</h3>
-    <p>13 laptop-friendly classifiers, all single-threaded by default:</p>
-    <ul>
-      <li><strong>Linear:</strong> LogisticRegression (L1 and L2), RidgeClassifier, SGDClassifier (modified Huber), LinearSVC</li>
-      <li><strong>Ensembles:</strong> RandomForest, ExtraTrees, GradientBoosting, BaggingClassifier (over LogisticRegression)</li>
-      <li><strong>Other:</strong> KNN-3, KNN-5, LinearDiscriminantAnalysis, GaussianNB</li>
-    </ul>
-    <p>
-      Preprocessing pipeline: StandardScaler → PCA (95 % variance retained) → classifier.
-      Preprocessing is refit inside every CV fold to prevent data leakage.
-    </p>
-
-    <h3>Cross-validation strategy</h3>
-    <p>
-      The pipeline auto-selects the appropriate CV scheme. When matched tumor/normal slides
-      exist for the same participant, <code>GroupKFold</code> (or
-      <code>LeaveOneGroupOut</code> for small cohorts) is used, with the participant ID as
-      the group. This guarantees no participant appears in both train and test. For
-      tumor-only subtasks (grade, mutation) each participant contributes a single slide, so
-      slide-level <code>LeaveOneOut</code> is equivalent to leave-one-patient-out.
-    </p>
-
-    <h3>Permutation test</h3>
-    <p>
-      To check whether AUC = 0.80 was a small-N fluke, the grade labels were randomly
-      shuffled 200 times. For each shuffle, the same LOO-cross-validated KNN-5 pipeline was
-      run end-to-end and the resulting AUC recorded. The empirical p-value is the fraction
-      of null AUCs ≥ the baseline, with a +1 / N+1 correction (Phipson & Smyth 2010).
-    </p>
-
-    <div class="callout">
-      <strong>Thermal-safe design.</strong> The pipeline was built around a laptop that
-      overheats easily. H5 files are loaded one at a time with explicit cooldown pauses;
-      models default to <code>n_jobs = 1</code>; progress is checkpointed every 5 files so
-      a crash never costs more than ~30 seconds of work.
+  <!-- HEADLINE FINDINGS -->
+  <section id="findings">
+    <h2>Three headline findings</h2>
+    <div class="finding-grid">
+      <div class="finding reveal">
+        <div class="big">0.80</div>
+        <div class="ftitle">A real tumor-grade signal</div>
+        <p>
+          On just 26 balanced CHOL slides, KNN-5 separates low- from high-grade tumors at
+          AUC 0.80 — and a 200-shuffle permutation test puts it well outside the null
+          (p = 0.005).
+        </p>
+      </div>
+      <div class="finding reveal">
+        <div class="big">+0.34</div>
+        <div class="ftitle">WSI adds real survival value</div>
+        <p>
+          On TCGA-ACC, imaging lifts the C-index from a near-chance age+sex baseline (0.51)
+          to 0.84 (HR 6.9 per SD). LIHC, CESC, COAD and STAD also show genuine WSI gains.
+        </p>
+      </div>
+      <div class="finding reveal">
+        <div class="big">LOPO</div>
+        <div class="ftitle">Honest small-cohort CV</div>
+        <p>
+          Pooled leave-one-participant-out with a bootstrap CI replaces noisy 5-fold survival
+          CV — exposing that the old "RSF 0.71 ± 0.22" was fold-split noise, not signal.
+        </p>
+      </div>
     </div>
   </section>
 
-  <!-- RESULTS -->
-  <section id="results">
-    <h2>Results</h2>
-
-    <h3>Targets explored</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Target</th>
-            <th class="num">N</th>
-            <th>Class split</th>
-            <th class="num">Best AUC</th>
-            <th>Verdict</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Tumor vs normal</td>
-            <td class="num">59</td>
-            <td>39 : 20</td>
-            <td class="num">1.000</td>
-            <td><span class="pill">saturated · not useful</span></td>
-          </tr>
-          <tr>
-            <td><strong>Tumor grade (low vs high)</strong></td>
-            <td class="num"><strong>26</strong></td>
-            <td><strong>13 : 13</strong></td>
-            <td class="num"><strong>0.799</strong></td>
-            <td><span class="pill good">real signal · p = 0.005</span></td>
-          </tr>
-          <tr>
-            <td>BAP1 mutation</td>
-            <td class="num">36</td>
-            <td>7 : 29</td>
-            <td class="num">0.639</td>
-            <td><span class="pill bad">too imbalanced</span></td>
-          </tr>
-          <tr>
-            <td>PBRM1 mutation</td>
-            <td class="num">36</td>
-            <td>8 : 28</td>
-            <td class="num">0.380</td>
-            <td><span class="pill bad">below chance</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>Top classifiers for tumor grade</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Model</th>
-            <th class="num">AUC</th>
-            <th class="num">Accuracy</th>
-            <th class="num">F1</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>KNN-5</td><td class="num">0.799</td><td class="num">0.808</td><td class="num">0.815</td></tr>
-          <tr><td>LogReg (L1)</td><td class="num">0.734</td><td class="num">0.692</td><td class="num">0.692</td></tr>
-          <tr><td>LinearSVC</td><td class="num">0.722</td><td class="num">0.692</td><td class="num">0.667</td></tr>
-          <tr><td>Bagging (LR)</td><td class="num">0.716</td><td class="num">0.731</td><td class="num">0.741</td></tr>
-          <tr><td>LogReg (L2)</td><td class="num">0.704</td><td class="num">0.615</td><td class="num">0.643</td></tr>
-          <tr><td>SGD (Huber)</td><td class="num">0.692</td><td class="num">0.692</td><td class="num">0.692</td></tr>
-          <tr><td>KNN-3</td><td class="num">0.686</td><td class="num">0.769</td><td class="num">0.769</td></tr>
-          <tr><td>GaussianNB</td><td class="num">0.686</td><td class="num">0.692</td><td class="num">0.692</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>Permutation test (grade · KNN-5 · LOO)</h3>
-    <div class="fig-wide">
-      <img src="results_lightweight/permutation_null_distribution.png"
-           alt="Null AUC distribution from 200 permutations">
-      <figcaption>
-        Distribution of AUCs across 200 label-shuffled re-runs. Mean null AUC = 0.426
-        (± 0.119); 97.5th percentile = 0.666. Baseline AUC = 0.760 sits well outside
-        the null. 0 / 200 shuffles ≥ baseline → p = 0.005 (Phipson–Smyth correction).
-      </figcaption>
-    </div>
-
-    <h3>Survival analysis (auxiliary)</h3>
-    <p>
-      As a side analysis, five survival models were fit on the full 36-participant
-      cohort with available survival data, again using GroupKFold by participant.
-      Random Survival Forest reached <strong>C-index = 0.714 ± 0.220</strong>;
-      Coxnet variants clustered around 0.54. Useful as an honest survival benchmark,
-      though variance is high at this cohort size.
+  <!-- COHORT SNAPSHOT -->
+  <section id="cohort">
+    <h2>The cohort at a glance</h2>
+    <p class="lead">
+      1 608 patients with valid survival across eight TCGA cancer projects — 557 events,
+      1 051 censored. Survival is modeled per cancer so a model trained on one never predicts
+      another.
     </p>
+    <div class="chart-wrap tall">
+      <canvas id="cohortChart"></canvas>
+    </div>
+    <p class="chart-caption">Patients per cancer project in the survival cohort (hover for counts and shares).</p>
   </section>
 
-  <!-- FIGURES -->
-  <section id="figures">
-    <h2>Pipeline figures</h2>
-    <p>
-      End-to-end overview of the analysis, generated by
-      <code>generate_workflow_figures.py</code>.
-    </p>
-    <div class="fig-grid">
-      <figure>
-        <img src="figures/fig1_pipeline_overview.png" alt="Pipeline overview">
-        <figcaption>Fig 1 · End-to-end WSI pipeline.</figcaption>
-      </figure>
-      <figure>
-        <img src="figures/fig2_aggregation_methods.png" alt="Aggregation methods taxonomy">
-        <figcaption>Fig 2 · Taxonomy of 43 aggregation methods.</figcaption>
-      </figure>
-      <figure>
-        <img src="figures/fig3_modeling_pipeline.png" alt="Modeling pipeline">
-        <figcaption>Fig 3 · Classification, survival, and clustering branches.</figcaption>
-      </figure>
-      <figure>
-        <img src="figures/fig4_results_outputs.png" alt="Result outputs">
-        <figcaption>Fig 4 · Output file structure.</figcaption>
-      </figure>
+  <!-- NAV CARDS -->
+  <section id="explore">
+    <h2>Explore the project</h2>
+    <div class="card-grid">
+      <a class="nav-card reveal" href="background.html">
+        <div class="kicker">Start here</div>
+        <h3>Background</h3>
+        <p>TCGA, whole-slide images, foundation models, and why slides get cut into patches — how we began.</p>
+        <span class="arrow">Read the primer →</span>
+      </a>
+      <a class="nav-card reveal" href="overview.html">
+        <div class="kicker">The story</div>
+        <h3>Overview</h3>
+        <p>The classification arc and the survival arc, step by step — including the dead ends.</p>
+        <span class="arrow">Follow the arc →</span>
+      </a>
+      <a class="nav-card reveal" href="methods.html">
+        <div class="kicker">Under the hood</div>
+        <h3>Methods</h3>
+        <p>Aggregation, models, leakage-safe CV, pooled LOPO, the permutation test, thermal design.</p>
+        <span class="arrow">See the methods →</span>
+      </a>
+      <a class="nav-card reveal" href="results.html">
+        <div class="kicker">Interactive</div>
+        <h3>Results</h3>
+        <p>Sortable tables, per-cancer C-index charts, classifier AUCs and Kaplan–Meier curves.</p>
+        <span class="arrow">Dig into results →</span>
+      </a>
+      <a class="nav-card reveal" href="figures.html">
+        <div class="kicker">Gallery</div>
+        <h3>Figures</h3>
+        <p>Every pipeline diagram, heatmap and survival curve, zoomable in one place.</p>
+        <span class="arrow">Browse figures →</span>
+      </a>
+      <a class="nav-card reveal" href="https://github.com/" target="_blank" rel="noopener">
+        <div class="kicker">Reproduce</div>
+        <h3>Code &amp; data</h3>
+        <p>Single consolidated pipeline, checkpointed and laptop-friendly. Repo + reproduction steps.</p>
+        <span class="arrow">View on GitHub →</span>
+      </a>
     </div>
   </section>
-
-  <!-- CODE -->
-  <section id="code">
-    <h2>Code & reproducibility</h2>
-
-    <h3>Setup</h3>
-<pre>pip install numpy pandas scipy scikit-learn h5py matplotlib seaborn
-pip install scikit-survival lifelines  # optional, for survival models</pre>
-
-    <h3>Run the headline analysis</h3>
-<pre># Tumor grade — the validated result
-python lightweight_wsi_classifier.py \
-    --aggregated-csv results_lightweight/aggregated_embeddings.csv \
-    --target grade \
-    --output-dir results_lightweight \
-    --no-survival</pre>
-
-    <h3>Other targets</h3>
-<pre># Default tumor vs normal (will hit AUC = 1.0)
-python lightweight_wsi_classifier.py --embeddings-dir ./embeddings
-
-# Mutation status (binary mut vs wt for any gene with a mut_GENE column)
-python lightweight_wsi_classifier.py --target mutation:BAP1 \
-    --aggregated-csv results_lightweight/aggregated_embeddings.csv
-
-# Survival quartile (short Q1 vs long Q4)
-python lightweight_wsi_classifier.py --target survival_quartile \
-    --aggregated-csv results_lightweight/aggregated_embeddings.csv</pre>
-
-    <h3>Force a specific CV strategy</h3>
-<pre>--cv-strategy auto              # leakage-safe by default (recommended)
---cv-strategy group_kfold       # explicit GroupKFold by participant
---cv-strategy logo              # LeaveOneGroupOut by participant
---cv-strategy stratified_kfold  # slide-level (leaky if paired)
---cv-strategy loo               # slide-level LOO (leaky if paired)</pre>
-
-    <h3>Repository layout</h3>
-<pre>JiaYin_WSI_Analysis/
-├── lightweight_wsi_classifier.py   # thermal-safe pipeline
-├── wsi_embedding_analysis.py       # comprehensive 43-aggregation benchmark
-├── generate_workflow_figures.py    # generates figures/*.png
-├── index.html                      # this site
-├── figures/                        # pipeline diagrams
-├── results_lightweight/            # CSVs + permutation null
-├── requirements.txt
-└── README.md
-</pre>
-
-    <div class="callout">
-      <strong>Data not included.</strong> The TCGA embeddings (<code>embeddings/*.h5</code>),
-      clinical parquet, and multi-omics parquets exceed GitHub's file-size limits and are
-      gitignored. The pipeline regenerates all results from scratch given those inputs.
-    </div>
-  </section>
-
-  <footer>
-    Built with the <span style="color: var(--accent);">Pine</span> theme ·
-    TCGA-CHOL WSI Embedding Analysis
-  </footer>
 
 </main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
 </body>
 </html>

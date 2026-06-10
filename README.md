@@ -1,13 +1,13 @@
-# WSI Embedding Analysis · TCGA-CHOL
+# WSI Embedding Analysis · TCGA Pan-Cancer
 
-A lightweight, leakage-safe, thermal-safe pipeline that explores what
-pre-extracted whole-slide image embeddings can actually predict on a small
-clinical cohort.
+A consolidated, leakage-safe, thermal-safe pipeline that runs classification
+and per-cancer survival analysis on pre-extracted whole-slide image
+embeddings.
 
-**Headline result:** tumor grade (low G1/G2 vs high G3/G4) classification on
-TCGA cholangiocarcinoma WSIs reaches AUC = 0.80 (KNN-5, leave-one-out CV,
-N = 26, perfectly balanced), validated by a 200-shuffle permutation test
-(p = 0.005).
+**Survival CV:** pooled leave-one-participant-out (LOPO) with 1000-iter
+bootstrap 95% CI on the C-index, run per cancer type. Replaces the earlier
+5-fold scheme that produced unreliable estimates (e.g. RSF 0.71 ± 0.22, where
+the wide std reflected fold-split noise on n=55 rather than predictive power).
 
 📖 **Full writeup with figures:** [project website](https://YOUR-USERNAME.github.io/YOUR-REPO/)
 (replace once GitHub Pages is enabled — see [Deploying the website](#deploying-the-website))
@@ -18,31 +18,38 @@ N = 26, perfectly balanced), validated by a 200-shuffle permutation test
 
 ```bash
 pip install numpy pandas scipy scikit-learn h5py matplotlib seaborn
-pip install scikit-survival lifelines  # optional, for survival models
+pip install scikit-survival lifelines  # for survival models
 
-# Reproduce the validated grade result (uses the cached aggregated CSV)
-python lightweight_wsi_classifier.py \
+# Reproduce on the small CHOL cohort (uses cached aggregated CSV)
+python wsi_survival_pipeline.py \
     --aggregated-csv results_lightweight/aggregated_embeddings.csv \
-    --target grade --output-dir results_lightweight --no-survival
+    --output-dir results_v2 --no-survival --target grade
 ```
 
-If you have the H5 embeddings, run from scratch:
+Full run on H5 embeddings (auto-detects both `./embeddings` and
+`./TCGA UNI2 embeddings`):
 
 ```bash
-python lightweight_wsi_classifier.py \
-    --embeddings-dir ./embeddings \
-    --clinical-data ./CLINICAL_FULL.parquet
+python wsi_survival_pipeline.py \
+    --clinical-data ./CLINICAL_FULL.parquet \
+    --output-dir ./results_v2
+```
+
+After a crash, resume aggregation:
+
+```bash
+python wsi_survival_pipeline.py --resume --output-dir ./results_v2
 ```
 
 ## What's in here
 
 | File | Purpose |
 |------|---------|
-| `lightweight_wsi_classifier.py` | Main thermal-safe pipeline. 13 classifiers, group-aware CV, four prediction targets, permutation-friendly. |
-| `wsi_embedding_analysis.py` | Comprehensive 43-aggregation × 24-classifier × 16-survival benchmark from the original project. |
+| `wsi_survival_pipeline.py` | Single consolidated pipeline. Classification + per-cancer pooled-LOPO survival with bootstrap CIs. Thermal-safe (chunked H5, cooldowns, checkpoint/resume). |
 | `generate_workflow_figures.py` | Generates the four pipeline diagrams in `figures/`. |
-| `index.html` | Project website (Pine dark theme) — readable directly or served via GitHub Pages. |
-| `METHODS_DETAILED_EXPLANATION.txt` | In-depth method notes for all 43 aggregations + 40 modeling methods. |
+| `index.html` + `background/overview/methods/results/figures.html` | Multi-page project website (Pine dark theme, dark/light toggle) — readable directly or served via GitHub Pages. |
+| `assets/styles.css`, `assets/app.js` | Shared theme + interactivity (theme toggle, image lightbox, sortable tables, Chart.js charts, animated counters). |
+| `METHODS_DETAILED_EXPLANATION.txt` | In-depth method notes for aggregation + modeling. |
 
 ## Prediction targets
 
@@ -55,18 +62,35 @@ python lightweight_wsi_classifier.py \
 
 ## Cross-validation
 
-The pipeline auto-selects a leakage-safe CV strategy. When matched
-tumor/normal slides exist for the same participant (as they do in TCGA-CHOL —
-15 of 39 participants), `GroupKFold` / `LeaveOneGroupOut` by `participant_id`
-is used so no participant appears in both train and test.
+**Classification** auto-picks a leakage-safe split: when any participant has
+multiple slides (e.g. tumor + matched normal), `GroupKFold` /
+`LeaveOneGroupOut` by `participant_id` is used so no participant appears in
+both train and test.
 
-```bash
---cv-strategy auto              # leakage-safe by default (recommended)
---cv-strategy group_kfold       # explicit GroupKFold by participant
---cv-strategy logo              # LeaveOneGroupOut by participant
---cv-strategy stratified_kfold  # slide-level (leaky if paired)
---cv-strategy loo               # slide-level LOO (leaky if paired)
-```
+**Survival** uses pooled leave-one-participant-out:
+
+1. For each participant, fit the model on the other N−1 and predict their risk.
+2. Pool all N held-out risk scores and compute a single C-index.
+3. Bootstrap resample (event, time, risk) triples 1000× → 2.5/97.5 percentiles
+   give a 95% CI.
+4. Per (cancer, model), also report: hazard ratio per 1 SD of risk score
+   (univariate lifelines Cox, with 95% CI and p), and log-rank chi² + p for
+   the median-split risk groups.
+
+This is the right choice when n is small (≤ a few hundred) and 5-fold leaves
+some folds with too few events to estimate a meaningful per-fold C-index.
+
+Every cancer is evaluated with three feature modes side-by-side so you can
+read off the marginal value of imaging:
+
+- `Cox_AgeSex` — clinical-only baseline (age + gender)
+- `Cox_WSI_plus_Clin` — combined model (WSI PCs ⊕ clinical)
+- `CoxnetLasso` / `CoxnetElasticNet` / `RSF` / `GradientBoostSurv` — WSI-only
+
+> **Clinical-baseline caveat:** `tumor_stage` is NaN throughout
+> `CLINICAL_FULL.parquet`, so the clinical baseline is `age + gender` only.
+> A stronger clinical baseline (with stage) would set a higher bar for WSI;
+> the current comparison is therefore *conservative*.
 
 ## Thermal-safe defaults
 
@@ -81,12 +105,14 @@ Built for laptops that overheat:
 
 ```
 JiaYin_WSI_Analysis/
-├── lightweight_wsi_classifier.py   # thermal-safe pipeline
-├── wsi_embedding_analysis.py       # 43-aggregation benchmark
+├── wsi_survival_pipeline.py        # consolidated pipeline
 ├── generate_workflow_figures.py
-├── index.html                      # project website
+├── index.html                      # project website (home)
+├── background.html overview.html methods.html results.html figures.html
+├── assets/                         # shared styles.css + app.js
 ├── figures/                        # pipeline diagrams
-├── results_lightweight/            # CSVs + permutation null PNG
+├── results_lightweight/            # historical results (small CHOL cohort)
+├── results/                        # historical results (original 16-model)
 ├── requirements.txt
 └── README.md
 ```
@@ -96,10 +122,9 @@ JiaYin_WSI_Analysis/
 These files exceed GitHub's size limits and are listed in `.gitignore`:
 
 - `embeddings/*.h5` — UNI2 patch embeddings for the 59 TCGA-CHOL slides
+- `TCGA UNI2 embeddings/*.h5` — 2075 slides across 8 TCGA cancer types
 - `CLINICAL_FULL.parquet` — TCGA clinical metadata
 - `TCGA_data/*.parquet` — multi-omics (expression, mutations, CNV, RPPA)
-
-The pipeline regenerates everything in `results_lightweight/` given those inputs.
 
 ## Deploying the website
 
@@ -107,8 +132,9 @@ The pipeline regenerates everything in `results_lightweight/` given those inputs
 2. In repo Settings → Pages, set the source to the `main` branch, root folder.
 3. The site is served at `https://<your-username>.github.io/<repo-name>/`.
 
-The `index.html` is self-contained (inline CSS, no build step). Jekyll is not
-required; an optional `.nojekyll` file is included to skip Jekyll processing.
+The site is plain HTML/CSS/JS with no build step — pages share `assets/styles.css`
+and `assets/app.js`, and Chart.js is loaded from a CDN. Jekyll is not required;
+an optional `.nojekyll` file is included so `assets/` is served verbatim.
 
 ## Reproducing the permutation test
 
