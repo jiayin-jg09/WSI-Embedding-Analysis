@@ -34,9 +34,37 @@
   /* ---------- NAV ACTIVE LINK ---------- */
   function initNav() {
     var here = location.pathname.split("/").pop() || "index.html";
-    document.querySelectorAll(".nav-links a").forEach(function (a) {
+    document.querySelectorAll(".nav-links a, .nav-drop-menu a").forEach(function (a) {
       var href = (a.getAttribute("href") || "").split("/").pop();
       if (href === here) a.classList.add("active");
+    });
+    if (/^models-/.test(here)) {
+      var toggle = document.querySelector(".nav-drop-toggle");
+      if (toggle) toggle.classList.add("active");
+    }
+  }
+
+  /* ---------- NAV DROPDOWN (click/tap toggle; hover handled by CSS) ---------- */
+  function initDropdown() {
+    var dd = document.querySelector(".nav-dropdown");
+    if (!dd) return;
+    var toggle = dd.querySelector(".nav-drop-toggle");
+    toggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      var open = dd.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    document.addEventListener("click", function (e) {
+      if (!dd.contains(e.target)) {
+        dd.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+      }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        dd.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+      }
     });
   }
 
@@ -211,6 +239,7 @@
     buildSurvivalBars();
     buildClassifierBars();
     buildTargetBars();
+    buildPooledBars();
 
     document.addEventListener("themechange", function () {
       registeredCharts.forEach(function (c) { recolor(c); c.chart.update(); });
@@ -349,6 +378,39 @@
     });
   }
 
+  // Pan-cancer pooled: overall vs stratified C-index
+  function buildPooledBars() {
+    var el = document.getElementById("pooledChart");
+    if (!el) return;
+    var col = themeColors();
+    var labels = ["Age + sex (clinical)", "WSI (Coxnet Lasso)"];
+    var overall = [0.576, 0.665];
+    var strat = [0.544, 0.605];
+    var chart = new Chart(el, {
+      type: "bar",
+      data: { labels: labels, datasets: [
+        { label: "Overall C-index", data: overall, backgroundColor: col.muted, borderRadius: 4 },
+        { label: "Stratified C-index (within cancer)", data: strat, backgroundColor: col.accent, borderRadius: 4 }
+      ] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: col.muted }, grid: { color: col.border } },
+          y: { min: 0.5, max: 0.72, ticks: { color: col.muted }, grid: { color: col.border },
+               title: { display: true, text: "C-index", color: col.muted } }
+        },
+        plugins: {
+          legend: { labels: { color: col.text } },
+          tooltip: { callbacks: { afterBody: function () { return "Chance = 0.50"; } } }
+        }
+      }
+    });
+    register(chart, "bar", function (c, col) {
+      c.data.datasets[0].backgroundColor = col.muted;
+      c.data.datasets[1].backgroundColor = col.accent;
+    });
+  }
+
   // Classification targets explored (AUC)
   function buildTargetBars() {
     var el = document.getElementById("targetChart");
@@ -387,6 +449,7 @@
   function boot() {
     initTheme();
     initNav();
+    initDropdown();
     initLightbox();
     initSortableTables();
     initCounters();

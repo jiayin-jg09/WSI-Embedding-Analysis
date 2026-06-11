@@ -99,6 +99,39 @@ nav {
 [data-theme="light"] .theme-toggle .icon-dark { display: inline; }
 [data-theme="light"] .theme-toggle .icon-light { display: none; }
 
+/* nav dropdown (Models) */
+.nav-dropdown { position: relative; display: inline-block; padding: 6px 0; }
+.nav-drop-toggle {
+  background: none; border: 0; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: 0.9rem; letter-spacing: 0.02em;
+  padding: 0 0 2px; transition: color 0.15s ease;
+}
+.nav-drop-toggle:hover,
+.nav-dropdown:hover .nav-drop-toggle,
+.nav-dropdown.open .nav-drop-toggle { color: var(--accent); }
+.nav-drop-toggle.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+.nav-drop-menu {
+  display: none; position: absolute; top: 100%; left: 0;
+  min-width: 170px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; box-shadow: var(--shadow); padding: 6px;
+  z-index: 60;
+}
+.nav-dropdown:hover .nav-drop-menu,
+.nav-dropdown.open .nav-drop-menu { display: block; }
+.nav-drop-menu a {
+  display: block; padding: 8px 12px; border-radius: 6px;
+  color: var(--text); font-size: 0.88rem; border-bottom: 0;
+}
+.nav-drop-menu a:hover { background: var(--panel-2); color: var(--accent); }
+.nav-drop-menu a.active { color: var(--accent); }
+@media (max-width: 720px) {
+  .nav-drop-menu { display: block; position: static; box-shadow: none; border: 0;
+                   padding: 4px 0 4px 14px; min-width: 0; }
+  .nav-drop-toggle { pointer-events: none; }  /* label only; children are the links */
+  .nav-dropdown { display: block; padding: 2px 0; }
+}
+
 /* ---- LAYOUT ---- */
 main {
   max-width: 1080px;
@@ -433,6 +466,19 @@ ul li { margin-bottom: 6px; }
   display: flex; align-items: center; justify-content: center;
 }
 .concept-figure svg { width: 100%; height: auto; display: block; }
+.concept-figure img {
+  width: 100%; height: auto; display: block; border-radius: 6px;
+  background: #fff; cursor: zoom-in;
+}
+.concept-figure { flex-direction: column; gap: 8px; }
+.concept-figure figcaption { color: var(--muted); font-size: 0.8rem; text-align: center; }
+.model-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.model-meta .tag {
+  font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--muted); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 10px; background: var(--panel);
+}
+.model-meta .tag b { color: var(--accent); font-weight: 600; }
 .concept-text h3 {
   text-transform: none; letter-spacing: -0.01em;
   font-size: 1.3rem; color: var(--text); margin-top: 0;

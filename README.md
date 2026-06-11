@@ -46,9 +46,12 @@ python wsi_survival_pipeline.py --resume --output-dir ./results_v2
 | File | Purpose |
 |------|---------|
 | `wsi_survival_pipeline.py` | Single consolidated pipeline. Classification + per-cancer pooled-LOPO survival with bootstrap CIs. Thermal-safe (chunked H5, cooldowns, checkpoint/resume). |
+| `pooled_survival_analysis.py` | Pan-cancer **pooled** survival: one model across all 8 cohorts (cancer-stratified 5-fold CV), reporting overall *and* within-cancer-stratified C-index. Runs from the cached aggregated CSV + clinical parquet. |
 | `generate_workflow_figures.py` | Generates the four pipeline diagrams in `figures/`. |
+| `generate_model_figures.py` | Generates the illustrative example plots in `figures/models/` for the model-explainer pages (synthetic data, no cohort data). |
 | `index.html` + `background/overview/methods/results/figures.html` | Multi-page project website (Pine dark theme, dark/light toggle) — readable directly or served via GitHub Pages. |
-| `assets/styles.css`, `assets/app.js` | Shared theme + interactivity (theme toggle, image lightbox, sortable tables, Chart.js charts, animated counters). |
+| `models-survival/classification/aggregation.html` | "Models explained" pages (reached via the **Models** nav dropdown): every model in depth with an example plot. |
+| `assets/styles.css`, `assets/app.js` | Shared theme + interactivity (theme toggle, nav dropdown, image lightbox, sortable tables, Chart.js charts, animated counters). |
 | `METHODS_DETAILED_EXPLANATION.txt` | In-depth method notes for aggregation + modeling. |
 
 ## Prediction targets

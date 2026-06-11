@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Survival models · WSI Pan-Cancer</title>
+<meta name="description" content="The survival models explained in detail — Cox PH, Coxnet Lasso/ElasticNet, Random Survival Forest, Gradient-Boosted Survival — plus censoring, hazard ratios, the C-index and the log-rank test.">
+<link rel="stylesheet" href="assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · survival</div>
+    <h1>Survival models, explained</h1>
+    <p class="subtitle">
+      Survival analysis asks a harder question than classification: not just <em>which</em>
+      group a patient is in, but <em>how long</em> until an event (here, death) — while
+      handling patients we stop observing before that event. This page builds up the core
+      ideas, then walks through every survival model the project uses.
+    </p>
+    <div class="card-grid">
+      <a class="nav-card" href="#concepts"><div class="kicker">First</div><h3>The concepts</h3><p>Censoring, Kaplan–Meier, hazard ratio, C-index, log-rank.</p><span class="arrow">Jump down →</span></a>
+      <a class="nav-card" href="#models"><div class="kicker">Then</div><h3>The models</h3><p>Cox PH, Coxnet, Random Survival Forest, Gradient Boosting.</p><span class="arrow">Jump down →</span></a>
+      <a class="nav-card" href="results.html#survival"><div class="kicker">In action</div><h3>The results</h3><p>How each model scored per cancer, and pooled.</p><span class="arrow">See results →</span></a>
+    </div>
+  </section>
+
+  <!-- CONCEPTS -->
+  <section id="concepts">
+    <h2>The building blocks</h2>
+
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">Censoring</div>
+        <h3>Why survival needs its own toolkit</h3>
+        <p>
+          For many patients we never observe the event: the study ends, or they're lost to
+          follow-up, while still alive. Their survival time is <strong>censored</strong> — we
+          only know they lived <em>at least</em> that long. You can't just throw these patients
+          away (that biases everything), and you can't treat "alive at last visit" as "lived
+          exactly that long." Every survival method below is built to use censored and complete
+          observations correctly.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="figures/models/censoring.png" alt="Timeline showing events vs censored patients" data-zoom>
+        <figcaption>Each line is a patient; ✕ = death observed, ○ = censored.</figcaption>
+      </figure>
+    </div>
+
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="figures/models/kaplan_meier.png" alt="Kaplan-Meier curves for two risk groups" data-zoom>
+        <figcaption>Survival probability over time for two predicted-risk groups.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">Kaplan–Meier &amp; log-rank</div>
+        <h3>Drawing and comparing survival curves</h3>
+        <p>
+          A <strong>Kaplan–Meier curve</strong> estimates the probability of surviving past each
+          time point, stepping down at each death and correctly accounting for censored patients.
+          To ask "do two groups differ?", we split patients (e.g. high vs low predicted risk at
+          the median) and run a <strong>log-rank test</strong> — its p-value asks whether the two
+          curves are farther apart than chance would produce. This is the project's standard
+          "does the model separate patients into clinically distinct groups?" check.
+        </p>
+      </div>
+    </div>
+
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">Hazard ratio</div>
+        <h3>How strong is the effect?</h3>
+        <p>
+          The <strong>hazard</strong> is the instantaneous risk of the event at a moment, given
+          survival up to then. A <strong>hazard ratio (HR)</strong> compares that risk between
+          conditions: HR&nbsp;=&nbsp;2 means twice the instantaneous risk. The project reports HR
+          <em>per one standard deviation</em> of the model's risk score, so the strength of the
+          continuous association is comparable across cancers (e.g. ACC's HR ≈ 6.9 is enormous;
+          an HR below 1 means the score is protective / anti-predictive).
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="figures/models/hazard_ratio.png" alt="Forest plot of hazard ratios per cancer" data-zoom>
+        <figcaption>Per-SD hazard ratios (log scale); the dashed line at 1 = no effect.</figcaption>
+      </figure>
+    </div>
+
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="figures/models/c_index.png" alt="Concordance index illustration" data-zoom>
+        <figcaption>Concordance: are higher-risk patients the ones who die sooner?</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">Concordance (C-index)</div>
+        <h3>The main score: did we rank patients correctly?</h3>
+        <p>
+          The <strong>concordance index</strong> is survival's analogue of AUC. Take every pair
+          of patients whose order we can judge, and ask: did the model give the higher risk score
+          to the one who died sooner? The C-index is the fraction ranked correctly —
+          <strong>0.5 is chance</strong>, 1.0 is perfect. It naturally handles censoring by only
+          comparing pairs whose ordering is known. Every result on this site is a C-index.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODELS -->
+  <section id="models">
+    <h2>The survival models</h2>
+    <p class="lead">
+      All five are fit on PCA-reduced WSI features (95% variance, refit inside every fold).
+      The clinical baseline and combined model also fold in age + sex.
+    </p>
+
+    <h3 style="color:var(--accent)">Cox proportional hazards</h3>
+    <div class="model-meta">
+      <span class="tag">library <b>scikit-survival</b></span>
+      <span class="tag">used as <b>Cox_AgeSex</b> baseline</span>
+      <span class="tag">type <b>linear</b></span>
+    </div>
+    <div class="concept">
+      <div class="concept-text">
+        <p>
+          <strong>What it does.</strong> The classic survival model. It assumes every covariate
+          multiplies a single shared <em>baseline hazard</em> by a constant factor — the
+          "proportional hazards" assumption — so a patient's covariates scale one underlying
+          survival curve up or down.
+        </p>
+        <p>
+          <strong>How it works.</strong> It estimates a weight per covariate; the weighted sum is
+          the log-hazard, and <code>exp(weight)</code> is that covariate's hazard ratio. It never
+          has to model the baseline curve's shape, which makes it efficient on small data.
+        </p>
+        <p>
+          <strong>Why it's here.</strong> With only age + gender it's the project's
+          <strong>clinical-only floor</strong> (<code>Cox_AgeSex</code>) — the bar every WSI model
+          must beat to prove imaging adds value.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="figures/models/cox_ph.png" alt="Cox proportional hazards curves" data-zoom>
+        <figcaption>Covariates scale one baseline curve; the curves never cross.</figcaption>
+      </figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Coxnet — Lasso (L1)</h3>
+    <div class="model-meta">
+      <span class="tag">library <b>scikit-survival</b></span>
+      <span class="tag">setting <b>l1_ratio = 1.0</b></span>
+      <span class="tag">type <b>penalized Cox</b></span>
+    </div>
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="figures/models/coxnet_lasso.png" alt="Lasso coefficient path" data-zoom>
+        <figcaption>As the penalty grows, most coefficients are driven to exactly zero.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <p>
+          <strong>What it does.</strong> A Cox model with an <strong>L1 penalty</strong>. With
+          thousands of WSI features and few patients, a plain Cox would overfit instantly. Lasso
+          adds a cost on coefficient size that forces most weights to <strong>exactly zero</strong>.
+        </p>
+        <p>
+          <strong>How it works.</strong> It fits a whole path of solutions from "very sparse" to
+          "less sparse" as the penalty α shrinks, automatically performing feature selection —
+          keeping only the handful of features that carry survival signal.
+        </p>
+        <p>
+          <strong>Why it's here.</strong> It's the project's <strong>workhorse WSI model</strong>:
+          the best per-cancer model for most cancers (CESC, COAD, STAD, …) and the pooled
+          pan-cancer model, because sparsity is exactly what tiny high-dimensional cohorts need.
+        </p>
+      </div>
+    </div>
+
+    <h3 style="color:var(--accent)">Coxnet — ElasticNet (L1 + L2)</h3>
+    <div class="model-meta">
+      <span class="tag">library <b>scikit-survival</b></span>
+      <span class="tag">setting <b>l1_ratio = 0.5</b></span>
+      <span class="tag">type <b>penalized Cox</b></span>
+    </div>
+    <div class="concept">
+      <div class="concept-text">
+        <p>
+          <strong>What it does.</strong> A blend of L1 (Lasso) and L2 (Ridge) penalties. It still
+          encourages sparsity, but the L2 part lets <em>groups of correlated features</em> survive
+          together instead of arbitrarily keeping one and dropping the rest.
+        </p>
+        <p>
+          <strong>How it works.</strong> The <code>l1_ratio</code> dials between pure Lasso (1.0)
+          and pure Ridge (0.0); at 0.5 it shares the work. Correlated WSI features — very common
+          in embeddings — are shrunk smoothly rather than fought over.
+        </p>
+        <p>
+          <strong>Why it's here.</strong> It's the WSI half of the <strong>combined model</strong>
+          (<code>Cox_WSI_plus_Clin</code>), and a robust alternative when Lasso's hard selection is
+          too aggressive on correlated imaging features.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="figures/models/coxnet_elasticnet.png" alt="ElasticNet coefficient path" data-zoom>
+        <figcaption>Coefficients shrink together; correlated groups are retained.</figcaption>
+      </figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Random Survival Forest (RSF)</h3>
+    <div class="model-meta">
+      <span class="tag">library <b>scikit-survival</b></span>
+      <span class="tag">setting <b>100 trees · depth 5</b></span>
+      <span class="tag">type <b>non-linear ensemble</b></span>
+    </div>
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="figures/models/rsf.png" alt="Random Survival Forest curves" data-zoom>
+        <figcaption>Each tree yields a survival curve; the forest averages them.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <p>
+          <strong>What it does.</strong> A random forest adapted to survival. Each tree splits
+          patients into ever-more-similar survival groups, and each leaf stores a Kaplan–Meier
+          curve. A patient's prediction is the average curve across all trees.
+        </p>
+        <p>
+          <strong>How it works.</strong> Trees are grown on bootstrap samples using random feature
+          subsets and a survival splitting rule (the log-rank statistic). Averaging many noisy
+          trees yields a smooth, <strong>non-linear</strong> risk estimate — no proportional-hazards
+          assumption required.
+        </p>
+        <p>
+          <strong>Why it's here.</strong> It can capture interactions a linear Cox can't — but on
+          tiny cohorts it overfits easily. It's the model whose old "0.71 ± 0.22" on CHOL turned
+          out to be noise under honest CV, a cautionary example the project keeps on display.
+        </p>
+      </div>
+    </div>
+
+    <h3 style="color:var(--accent)">Gradient-Boosted Survival</h3>
+    <div class="model-meta">
+      <span class="tag">library <b>scikit-survival</b></span>
+      <span class="tag">setting <b>50 stages · depth 2</b></span>
+      <span class="tag">type <b>non-linear boosting</b></span>
+    </div>
+    <div class="concept">
+      <div class="concept-text">
+        <p>
+          <strong>What it does.</strong> Builds an ensemble <em>sequentially</em>: each new shallow
+          tree is fit to correct the errors of the trees so far, gradually improving the risk
+          prediction.
+        </p>
+        <p>
+          <strong>How it works.</strong> Using a Cox-style loss, it takes many small additive
+          steps (learning rate 0.1) with depth-2 "stumps". This can model subtle non-linear
+          structure, but more stages means more chance to overfit small data.
+        </p>
+        <p>
+          <strong>Why it's here.</strong> It rounds out the comparison with a second non-linear
+          approach, so each cancer's result reflects the <em>best</em> of linear and non-linear
+          models rather than a single arbitrary choice.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="figures/models/gbsurv.png" alt="Gradient boosted survival staged improvement" data-zoom>
+        <figcaption>Each added tree nudges the training C-index upward.</figcaption>
+      </figure>
+    </div>
+
+    <div class="callout">
+      <strong>How they're compared.</strong> Every model is scored by pooled
+      leave-one-participant-out C-index with a bootstrap 95% CI, plus a per-SD hazard ratio and a
+      median-split log-rank p — all defined above. See the
+      <a href="methods.html#cv">Methods</a> for the exact cross-validation, and the
+      <a href="results.html#survival">Results</a> for how each model actually performed.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

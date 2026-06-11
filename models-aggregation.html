@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aggregation methods · WSI Pan-Cancer</title>
+<meta name="description" content="How a slide's variable number of patch embeddings is aggregated into one fixed-length vector — the summary statistics, the 'rich' default, and the broader taxonomy of methods.">
+<link rel="stylesheet" href="assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · aggregation</div>
+    <h1>Aggregation, explained</h1>
+    <p class="subtitle">
+      Before any classifier or survival model runs, each slide's hundreds-to-thousands of patch
+      embeddings must become <em>one</em> fixed-length vector. That step — aggregation — is quietly
+      one of the most consequential choices in the whole pipeline. This page explains why it's
+      needed, the statistics used, the "rich" default, and the wider menu of methods evaluated.
+    </p>
+  </section>
+
+  <!-- WHY -->
+  <section id="why">
+    <h2>Why aggregate at all?</h2>
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">Variable in, fixed out</div>
+        <h3>Models need a fixed-length vector; slides don't have one</h3>
+        <p>
+          After the UNI2 foundation model, each slide is a stack of patch vectors —
+          <strong>N × 1,536</strong> — but N differs from slide to slide (one slide might have 800
+          patches, another 40,000). Classical models (the Cox, Coxnet, KNN, forests on the other
+          two pages) require every sample to be the <em>same length</em>.
+        </p>
+        <p>
+          <strong>Aggregation</strong> solves this by summarizing the whole stack into one
+          fixed-length slide vector — collapsing the patch dimension while trying to preserve the
+          information that distinguishes slides.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="figures/models/agg_rich_vector.png" alt="Patches aggregated into one slide vector" data-zoom>
+        <figcaption>Six per-dimension statistics, concatenated into one 9,216-dim slide vector.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="statistics">
+    <h2>The summary statistics</h2>
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="figures/models/agg_summary_stats.png" alt="Histogram of one embedding dimension with summary statistics" data-zoom>
+        <figcaption>For one embedding dimension across a slide's patches, the mean, spread and percentiles capture the shape of the distribution.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">Per-dimension distributions</div>
+        <h3>Each statistic answers a different question</h3>
+        <p>
+          Think of one of the 1,536 embedding dimensions: across a slide's patches it has a whole
+          <em>distribution</em> of values. A single number has to summarize that distribution, and
+          different statistics keep different things:
+        </p>
+        <ul>
+          <li><strong>Mean</strong> — the typical value (overall character of the slide).</li>
+          <li><strong>Std</strong> — how much patches vary (tumor heterogeneity).</li>
+          <li><strong>Percentiles (P10–P90)</strong> — the shape and tails, robust to outliers.</li>
+        </ul>
+        <p>
+          Using several statistics together keeps far more signal than the mean alone — which can
+          wash out a small but important region of a slide.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RICH DEFAULT -->
+  <section id="rich">
+    <h2>The "rich" default</h2>
+    <p>
+      The shipped pipeline concatenates <strong>six statistics per dimension</strong> — mean, std,
+      P10, P25, P75, P90 — turning each slide's <code>N × 1,536</code> patch matrix into a single
+      <strong>9,216-dimensional</strong> vector (6 × 1,536). It captures central tendency
+      (<em>mean</em>), spread (<em>std</em>), and the distribution's shape and tails
+      (<em>the four percentiles</em>) while staying simple, deterministic, and cheap to compute —
+      important on a thermally-constrained laptop. A plain <strong>mean-only</strong> aggregation
+      (1,536-dim) is also supported as a lightweight fallback.
+    </p>
+    <div class="callout">
+      The 9,216-dim vector is high relative to the cohort sizes, which is exactly why every
+      downstream model is preceded by <a href="models-classification.html#concepts">PCA</a> (95%
+      variance) and penalized / regularized fitting — see the model pages.
+    </div>
+  </section>
+
+  <!-- TAXONOMY -->
+  <section id="taxonomy">
+    <h2>The broader taxonomy</h2>
+    <p>
+      The "rich" six are a deliberate subset of a much larger menu of aggregation methods explored
+      in earlier runs. Grouped by what they capture:
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Family</th><th>Methods</th><th>Captures</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Central tendency</strong></td><td>mean, median, trimmed mean, winsorized mean, geometric &amp; harmonic mean</td><td>the typical patch value, with varying outlier-robustness</td></tr>
+          <tr><td><strong>Spread</strong></td><td>std, variance, range, IQR, MAD, coefficient of variation, mid-range</td><td>how heterogeneous the slide's patches are</td></tr>
+          <tr><td><strong>Shape</strong></td><td>skewness, kurtosis, entropy</td><td>asymmetry and tail-heaviness of the distribution</td></tr>
+          <tr><td><strong>Percentiles</strong></td><td>P5, P10, P25, P50, P75, P90, P95, min, max</td><td>the full profile of the distribution, robustly</td></tr>
+          <tr><td><strong>Extremes</strong></td><td>top-5/10 mean, bottom-5/10 mean</td><td>the most distinctive (often most diagnostic) patches</td></tr>
+          <tr><td><strong>Weighted / energy</strong></td><td>entropy-weighted mean, variance-weighted mean, RMS, sum-abs</td><td>emphasis on informative or high-magnitude patches</td></tr>
+          <tr><td><strong>Combined ("mega")</strong></td><td>mean+minmax, mean+extremes, central+spread, robust, full distribution</td><td>concatenations spanning several families at once</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="fig-wide">
+      <img src="figures/fig2_aggregation_methods.png" alt="Aggregation methods taxonomy diagram" data-zoom>
+      <figcaption>
+        The full aggregation taxonomy. The consolidated pipeline ships with the "rich" method
+        (mean + std + P10/25/75/90) as its default; the rest document alternatives evaluated in
+        earlier runs. Click to enlarge.
+      </figcaption>
+    </div>
+
+    <div class="callout">
+      <strong>Why not just use the biggest "mega" vector?</strong> More statistics means more
+      dimensions on cohorts of tens-to-hundreds of patients — quickly hitting diminishing returns
+      and overfitting risk. The "rich" six were chosen as the sweet spot between expressiveness and
+      stability. See the <a href="methods.html#aggregation">Methods</a> for how it plugs into the
+      rest of the pipeline.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>
