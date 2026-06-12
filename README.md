@@ -49,8 +49,9 @@ python wsi_survival_pipeline.py --resume --output-dir ./results_v2
 | `pooled_survival_analysis.py` | Pan-cancer **pooled** survival: one model across all 8 cohorts (cancer-stratified 5-fold CV), reporting overall *and* within-cancer-stratified C-index. Runs from the cached aggregated CSV + clinical parquet. |
 | `generate_workflow_figures.py` | Generates the four pipeline diagrams in `figures/`. |
 | `generate_model_figures.py` | Generates the illustrative example plots in `figures/models/` for the model-explainer pages (synthetic data, no cohort data). |
+| `generate_pca_plots.py` | Generates real PCA scatter plots from the cached aggregated embeddings (`figures/pca/`): 8-cancer cohort by cancer type (6 rich methods), the full ~44-method sweep on CHOL by tumor/normal, plus clustering + FDR-significance figures (`figures/models/`). No H5 files needed. |
 | `index.html` + `background/overview/methods/results/figures.html` | Multi-page project website (Pine dark theme, dark/light toggle) — readable directly or served via GitHub Pages. |
-| `models-survival/classification/aggregation.html` | "Models explained" pages (reached via the **Models** nav dropdown): every model in depth with an example plot. |
+| `models-survival/classification/aggregation/clustering/metrics.html` | "Models explained" pages (reached via the **Models** nav dropdown): every model in depth with example plots, plus PCA visualizations, clustering & statistics, and evaluation metrics. |
 | `assets/styles.css`, `assets/app.js` | Shared theme + interactivity (theme toggle, nav dropdown, image lightbox, sortable tables, Chart.js charts, animated counters). |
 | `METHODS_DETAILED_EXPLANATION.txt` | In-depth method notes for aggregation + modeling. |
 

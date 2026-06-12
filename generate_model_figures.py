@@ -494,6 +494,50 @@ def fig_agg_rich_vector():
     save(fig, "agg_rich_vector.png")
 
 
+# =========================================================================
+# METRICS
+# =========================================================================
+def fig_confusion_matrix():
+    cm = np.array([[42, 8], [6, 44]])  # [[TN, FP], [FN, TP]] illustrative
+    labels = np.array([["TN\n42", "FP\n8"], ["FN\n6", "TP\n44"]])
+    fig, ax = plt.subplots(figsize=(4.8, 4.4))
+    ax.imshow(cm, cmap="BuGn", vmin=0, vmax=cm.max()*1.3)
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, labels[i, j], ha="center", va="center",
+                    fontsize=13, fontweight="bold", color="#16241d")
+    ax.set_xticks([0, 1]); ax.set_xticklabels(["Pred 0", "Pred 1"])
+    ax.set_yticks([0, 1]); ax.set_yticklabels(["Actual 0", "Actual 1"])
+    ax.set_title("Confusion matrix\nthe raw material for every metric")
+    ax.grid(False)
+    save(fig, "confusion_matrix.png")
+
+
+def fig_precision_recall():
+    # F1 as harmonic mean surface of precision & recall
+    p = np.linspace(0.01, 1, 200)
+    fig, axes = plt.subplots(1, 2, figsize=(8, 3.6))
+    # left: definitions bar from the confusion matrix above
+    TN, FP, FN, TP = 42, 8, 6, 44
+    acc = (TP+TN)/(TP+TN+FP+FN)
+    prec = TP/(TP+FP); rec = TP/(TP+FN); f1 = 2*prec*rec/(prec+rec)
+    names = ["Accuracy", "Precision", "Recall", "F1"]
+    vals = [acc, prec, rec, f1]
+    axes[0].bar(names, vals, color=["#5a6f66", "#0d9488", "#2dd4bf", "#14b8a6"])
+    for i, v in enumerate(vals):
+        axes[0].text(i, v+0.02, f"{v:.2f}", ha="center", fontsize=9, fontweight="bold")
+    axes[0].set_ylim(0, 1.1); axes[0].set_title("Metrics from that matrix")
+    axes[0].set_ylabel("score")
+    # right: F1 = harmonic mean curve at fixed recall values
+    for rec_fixed, c in [(0.9, ACCENT), (0.6, ACCENT2), (0.3, WARN)]:
+        f1c = 2*p*rec_fixed/(p+rec_fixed)
+        axes[1].plot(p, f1c, color=c, lw=2, label=f"recall = {rec_fixed}")
+    axes[1].set_title("F1 = harmonic mean of precision & recall\n(punishes imbalance between them)")
+    axes[1].set_xlabel("precision"); axes[1].set_ylabel("F1"); axes[1].set_ylim(0, 1)
+    axes[1].legend(fontsize=8)
+    save(fig, "precision_recall.png")
+
+
 def main():
     # classification
     fig_knn(); fig_logreg(); fig_regularization(); fig_linearsvc()
@@ -505,6 +549,8 @@ def main():
     fig_cox_ph(); fig_coxnet_lasso(); fig_coxnet_elasticnet(); fig_rsf(); fig_gbsurv()
     # aggregation
     fig_agg_summary_stats(); fig_agg_rich_vector()
+    # metrics
+    fig_confusion_matrix(); fig_precision_recall()
     print("\nAll model figures written to", OUT)
 
 

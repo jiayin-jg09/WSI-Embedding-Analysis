@@ -28,6 +28,8 @@
           <a href="models-survival.html">Survival</a>
           <a href="models-classification.html">Classification</a>
           <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
         </div>
       </div>
       <a href="results.html">Results</a>
@@ -163,6 +165,58 @@
       and overfitting risk. The "rich" six were chosen as the sweet spot between expressiveness and
       stability. See the <a href="methods.html#aggregation">Methods</a> for how it plugs into the
       rest of the pipeline.
+    </div>
+  </section>
+
+  <!-- PCA: SEEING IT -->
+  <section id="pca">
+    <h2>Seeing it: PCA of the aggregated embeddings</h2>
+    <p class="lead">
+      The clearest way to feel what aggregation does is to project the slide vectors down to 2
+      dimensions with PCA and look. These are <strong>real</strong> embeddings from the project,
+      not synthetic.
+    </p>
+
+    <h3 style="color:var(--accent)">All 8 cancers, mean aggregation</h3>
+    <p>
+      Each point is one slide's mean-aggregated embedding, colored by cancer type. Even with no
+      labels given to the projection, cancers occupy distinct regions — adrenocortical (ACC) pulls
+      cleanly to one side, and the gastrointestinal cancers (COAD, STAD, READ, ESCA) overlap as
+      you'd expect from related tissue.
+    </p>
+    <div class="fig-wide">
+      <img src="figures/pca/pca_mean_bycancer.png" alt="PCA of mean-aggregated embeddings by cancer type" data-zoom>
+      <figcaption>PCA of mean-aggregated slide embeddings (1,608 tumor slides), colored by cancer type. Click to enlarge.</figcaption>
+    </div>
+
+    <h3 style="color:var(--accent)">Does the aggregation method matter?</h3>
+    <p>
+      Running the same PCA on each of the six "rich" statistics shows that the choice of
+      aggregation genuinely reshapes the embedding space — mean and the percentiles preserve the
+      cancer-type structure most clearly, while std (spread) captures a different, complementary
+      view.
+    </p>
+    <div class="fig-wide">
+      <img src="figures/pca/pca_methods_grid.png" alt="PCA per aggregation method, by cancer type" data-zoom>
+      <figcaption>One PCA per cached aggregation statistic (mean, std, P10, P25, P75, P90), colored by cancer type.</figcaption>
+    </div>
+
+    <h3 style="color:var(--accent)">The full method sweep (CHOL, tumor vs normal)</h3>
+    <p>
+      For the broader method menu — median, geometric mean, IQR, entropy, the "mega" combinations
+      and more — here is the original CHOL cohort projected by PCA and colored by tumor vs normal.
+      Almost every method separates tumor from normal tissue, which is why tumor-vs-normal
+      classification <em>saturates</em> at AUC ≈ 1.0; the interesting differences between methods
+      show up only on harder targets.
+    </p>
+    <div class="fig-wide">
+      <img src="figures/pca/pca_chol_methods_grid.png" alt="PCA per aggregation method on CHOL, tumor vs normal" data-zoom>
+      <figcaption>18 aggregation methods on the 59-slide CHOL cohort (PCA, tumor vs normal). Click to enlarge.</figcaption>
+    </div>
+    <div class="callout">
+      Unsupervised clustering of these same embeddings, and the statistics testing whether the
+      groups are meaningful, are covered on the
+      <a href="models-clustering.html">Clustering &amp; Statistics</a> page.
     </div>
   </section>
 
