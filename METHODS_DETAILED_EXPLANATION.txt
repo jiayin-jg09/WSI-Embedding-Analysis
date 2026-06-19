@@ -1,0 +1,696 @@
+================================================================================
+WSI EMBEDDING ANALYSIS PIPELINE - DETAILED METHODS EXPLANATION
+================================================================================
+Last Updated: 2026-02-09
+
+This document provides a detailed explanation of all aggregation methods and
+modeling methods used in the WSI Embedding Analysis Pipeline.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1. Background: Patch Embeddings and Aggregation
+2. Aggregation Methods (43 total)
+   2a. Central Tendency (6 methods)
+   2b. Dispersion / Spread (7 methods)
+   2c. Distribution Shape (3 methods)
+   2d. Percentiles (7 methods)
+   2e. Extreme Values / Top-K (8 methods)
+   2f. Weighted Aggregations (2 methods)
+   2g. Energy / Magnitude (2 methods)
+   2h. Mega-Vectors (8 methods)
+3. Classification Models (24 total)
+4. Survival Analysis Models (16 total)
+5. Clustering & Statistical Tests
+6. Cross-Validation Strategy
+7. Summary Tables
+
+
+================================================================================
+1. BACKGROUND: PATCH EMBEDDINGS AND AGGREGATION
+================================================================================
+
+A Whole Slide Image (WSI) is a gigapixel-resolution digital scan of a tissue
+slide. Because WSIs are too large to process as a single image, they are
+divided into thousands of small patches (256 x 256 pixels at 20x magnification).
+
+Each patch is passed through the UNI2 foundation model (a Vision Transformer
+pre-trained on over 100 million pathology images), which outputs a 1,536-
+dimensional feature vector (embedding) for each patch.
+
+The PROBLEM: Each slide has a different number of patches (typically 1,000 -
+30,000), so we cannot directly compare slides. We need a fixed-size
+representation.
+
+The SOLUTION: Aggregation methods reduce the variable-length set of patch
+embeddings (N x 1,536) into a single fixed-size slide-level vector.
+
+Conceptual Example:
+    Slide A: 5,000 patches x 1,536 dims  -->  aggregation  -->  1 x 1,536
+    Slide B: 12,000 patches x 1,536 dims -->  aggregation  -->  1 x 1,536
+    Now both slides can be compared directly.
+
+Different aggregation methods capture different properties of the patch
+distribution:
+    - Central tendency methods capture the "typical" patch
+    - Dispersion methods capture tissue heterogeneity
+    - Extreme value methods may capture rare/unusual regions (e.g., mitoses)
+    - Mega-vectors combine multiple perspectives into one representation
+
+
+================================================================================
+2. AGGREGATION METHODS (43 TOTAL)
+================================================================================
+
+For all methods below, the input is a matrix of shape (N, 1536) where N is the
+number of patches and 1536 is the UNI2 embedding dimension. The output is a
+vector. Standard methods output (1536,); mega-vectors output larger dimensions.
+
+--------------------------------------------------------------------------------
+2a. CENTRAL TENDENCY (6 methods) - Output: 1,536 dims each
+--------------------------------------------------------------------------------
+These methods summarize the "typical" patch in a slide.
+
+Method              Formula / Description                           Robustness
+-----------------   ----------------------------------------------- ----------
+mean                Arithmetic mean: sum(x_i) / N                   Low
+                    Most common aggregation. Sensitive to outliers.
+                    Treats all patches equally.
+
+median              50th percentile per dimension                    High
+                    More robust to extreme patches. Captures the
+                    "central" patch without outlier influence.
+
+trimmed_mean        Mean after removing top/bottom 10% of values    Medium
+                    Trims extreme patches before averaging.
+                    Parameter: proportion=0.1 (10% each tail).
+
+winsorized_mean     Mean after capping extremes at 10th/90th        Medium
+                    percentile. Unlike trimmed mean, replaces
+                    extremes rather than removing them.
+                    Parameter: limits=(0.1, 0.1).
+
+geometric_mean      Product of values raised to 1/N power           Low
+                    Emphasizes multiplicative relationships.
+                    Values shifted to positive domain first.
+                    Better for log-normal distributions.
+
+harmonic_mean       N / sum(1/x_i)                                  Low
+                    Emphasizes smaller values. Useful when
+                    smaller embeddings are more informative.
+                    Values shifted to positive domain first.
+
+
+--------------------------------------------------------------------------------
+2b. DISPERSION / SPREAD (7 methods) - Output: 1,536 dims each
+--------------------------------------------------------------------------------
+These methods capture how much variation exists across patches -- i.e., how
+heterogeneous the tissue is. Higher values = more diverse tissue composition.
+
+Method              Formula / Description                           Interpretation
+-----------------   ----------------------------------------------- ----------
+std                 Standard deviation: sqrt(var(x))                 General spread
+                    Overall patch variability per dimension.
+
+variance            Variance: mean((x_i - mean)^2)                  Spread (squared)
+                    Same as std^2. Amplifies large deviations.
+
+range               Max - Min per dimension                          Total spread
+                    Sensitive to single extreme patches.
+
+cv                  Coefficient of Variation: std / mean             Relative spread
+                    Normalized spread. Allows comparison across
+                    dimensions with different magnitudes.
+
+iqr                 Interquartile Range: P75 - P25                   Robust spread
+                    Spread of the middle 50% of patches.
+                    Unaffected by extreme outlier patches.
+
+mad                 Median Absolute Deviation                        Very robust
+                    median(|x_i - median(x)|)
+                    Most robust spread measure. Resistant to
+                    up to 50% outlier contamination.
+
+mid_range           (Max + Min) / 2 per dimension                    Center of extremes
+                    Midpoint between extreme patches.
+                    Sensitive to outliers but captures range center.
+
+
+--------------------------------------------------------------------------------
+2c. DISTRIBUTION SHAPE (3 methods) - Output: 1,536 dims each
+--------------------------------------------------------------------------------
+These methods capture the shape of the patch distribution, not its location
+or spread. They reveal asymmetry and tail behavior.
+
+Method              Formula / Description                           Interpretation
+-----------------   ----------------------------------------------- ----------
+entropy             Shannon entropy of discretized values            Disorder/diversity
+                    H = -sum(p_i * log(p_i))
+                    Per-dimension: values binned into 50 bins.
+                    High entropy = patches spread uniformly.
+                    Low entropy = patches clustered together.
+
+skewness            Third moment: E[(x - mean)^3] / std^3           Asymmetry
+                    Positive: long right tail (few high patches).
+                    Negative: long left tail (few low patches).
+                    Zero: symmetric distribution.
+
+kurtosis            Fourth moment: E[(x - mean)^4] / std^4 - 3      Tail heaviness
+                    Positive (leptokurtic): heavy tails, sharp peak.
+                    Negative (platykurtic): light tails, flat peak.
+                    Zero: normal-like distribution.
+
+
+--------------------------------------------------------------------------------
+2d. PERCENTILES (7 methods) - Output: 1,536 dims each
+--------------------------------------------------------------------------------
+Percentile methods select specific points in the patch distribution. Together,
+they capture the full shape without assuming any functional form.
+
+Method              Percentile   Interpretation
+-----------------   ----------   ------------------------------------------
+percentile_5        P5           Lower tail boundary (near-minimum)
+percentile_10       P10          Low-end patches
+percentile_25       P25 (Q1)     First quartile
+percentile_50       P50 (median) Central tendency
+percentile_75       P75 (Q3)     Third quartile
+percentile_90       P90          High-end patches
+percentile_95       P95          Upper tail boundary (near-maximum)
+
+Why multiple percentiles?
+    - P25 and P75 together capture the interquartile range (IQR)
+    - P5 and P95 capture the 90% range
+    - Comparing P50 to mean reveals skewness
+    - Percentiles are robust to outliers (unlike min/max)
+
+
+--------------------------------------------------------------------------------
+2e. EXTREME VALUES / TOP-K (8 methods) - Output: 1,536 dims each
+--------------------------------------------------------------------------------
+These methods focus on specific subsets of patches rather than the whole slide.
+Useful when the most informative patches are rare (e.g., tumor cells, mitotic
+figures, immune hotspots).
+
+Method              Description                                     Rationale
+-----------------   ----------------------------------------------- ----------
+max                 Maximum value per dimension                      Single most extreme
+                    Captures the most activated feature per dim.
+
+min                 Minimum value per dimension                      Single least active
+                    Captures the least activated feature per dim.
+
+top5_mean           Mean of top 5% patches by L2 norm               High-signal patches
+                    L2 norm = sqrt(sum(x_i^2)).
+                    Selects patches with strongest overall signal.
+
+top10_mean          Mean of top 10% patches by L2 norm              Broader high-signal
+                    Same as top5 but more inclusive.
+
+bottom5_mean        Mean of bottom 5% patches by L2 norm            Background/low-signal
+                    Captures patches with weakest signal.
+                    May represent background tissue or fat.
+
+bottom10_mean       Mean of bottom 10% patches by L2 norm           Broader low-signal
+                    Same as bottom5 but more inclusive.
+
+top5_mean_L1        Mean of top 5% patches by L1 norm               Sparse high-signal
+                    L1 norm = sum(|x_i|).
+                    L1 emphasizes sparsity vs L2's overall magnitude.
+
+median_patch        Single patch closest to median embedding         Representative patch
+                    Finds the actual patch nearest to the
+                    element-wise median. Returns a real patch
+                    embedding (not a synthetic average).
+
+Note on L2 vs L1 norms for selection:
+    L2 norm (Euclidean): sqrt(x_1^2 + x_2^2 + ... + x_1536^2)
+        - Sensitive to large individual values
+        - Selects patches with strong activation in any dimension
+    L1 norm (Manhattan): |x_1| + |x_2| + ... + |x_1536|
+        - Treats all dimensions equally
+        - Selects patches with broad (non-sparse) activation
+
+
+--------------------------------------------------------------------------------
+2f. WEIGHTED AGGREGATIONS (2 methods) - Output: 1,536 dims each
+--------------------------------------------------------------------------------
+These methods assign different importance weights to different patches before
+averaging. The intuition: not all patches are equally informative.
+
+Method                  Description                                 Weighting
+---------------------   ------------------------------------------- ---------
+entropy_weighted_mean   Mean weighted by inverse patch entropy       Consistency
+                        Per-patch entropy computed from 50 bins.
+                        Weight = 1 / (entropy + epsilon).
+                        Low-entropy patches (coherent features)
+                        get higher weight. Noisy/ambiguous patches
+                        get lower weight.
+
+variance_weighted_mean  Mean weighted by inverse patch variance      Stability
+                        Per-patch variance computed across 1536 dims.
+                        Weight = 1 / (variance + epsilon).
+                        Low-variance patches (stable features)
+                        get higher weight. Patches with extreme
+                        activation patterns get lower weight.
+
+
+--------------------------------------------------------------------------------
+2g. ENERGY / MAGNITUDE (2 methods) - Output: 1,536 dims each
+--------------------------------------------------------------------------------
+These methods capture the overall magnitude of the embedding signal.
+
+Method              Formula                                         Interpretation
+-----------------   ----------------------------------------------- ----------
+rms                 Root Mean Square:                                Signal strength
+                    sqrt(mean(x_i^2)) per dimension.
+                    Like mean but emphasizes larger values.
+                    Always >= mean (equality when all equal).
+
+sum_abs             Sum of absolute values per dimension             Total magnitude
+                    sum(|x_i|) per dimension.
+                    Captures total signal regardless of sign.
+
+
+--------------------------------------------------------------------------------
+2h. MEGA-VECTORS (8 methods) - Output: 4,608 to 10,752 dims
+--------------------------------------------------------------------------------
+Mega-vectors concatenate multiple aggregation methods into a single higher-
+dimensional representation. The idea: different methods capture different
+aspects of the tissue, so combining them gives a richer representation.
+
+TRADEOFF: More information vs. higher dimensionality (curse of dimensionality).
+PCA is applied before modeling to reduce dimensions.
+
+Method                  Components Concatenated              Output Dims
+---------------------   -----------------------------------  -----------
+mega_mean_minmax        mean + min + max                     4,608
+                        (3 x 1,536)
+                        Captures center + extremes.
+
+mega_mean_extremes      mean + top5 + bottom5 +              7,680
+                        top10 + bottom10                     (5 x 1,536)
+                        Captures center + high/low signals.
+
+mega_mean_percentiles   mean + P10 + P25 + P75 + P90         7,680
+                        (5 x 1,536)
+                        Captures center + distribution shape.
+
+mega_central_spread     mean + std + var + range + iqr        7,680
+                        (5 x 1,536)
+                        Captures center + all spread measures.
+
+mega_robust             median + trimmed_mean + iqr +         7,680
+                        P25 + P75                            (5 x 1,536)
+                        All robust (outlier-resistant) methods.
+
+mega_full               mean + min + max + top5 +             10,752
+                        bottom5 + std + range                (7 x 1,536)
+                        Most comprehensive standard combo.
+
+mega_distribution       mean + std + skewness + kurtosis      6,144
+                        (4 x 1,536)
+                        Center + spread + shape parameters.
+
+mega_all_percentiles    P5+P10+P25+P50+P75+P90+P95           10,752
+                        (7 x 1,536)
+                        Complete percentile profile.
+
+
+================================================================================
+3. CLASSIFICATION MODELS (24 TOTAL)
+================================================================================
+
+Task: Binary classification -- Tumor (sample codes 01-09) vs Normal (10-19)
+
+All models use StandardScaler normalization + PCA (95% variance) as
+preprocessing. Evaluation: Stratified 5-fold CV + Leave-One-Out CV.
+
+--------------------------------------------------------------------------------
+TREE-BASED ENSEMBLES (7 models, always available)
+--------------------------------------------------------------------------------
+Model                   Key Parameters           How It Works
+---------------------   ----------------------   ----------------------------
+RandomForest            n_estimators=100         Builds 100 random decision
+                        max_depth=10             trees, averages predictions.
+                                                 Random feature subsets per split.
+
+ExtraTrees              n_estimators=100         Like RF but with random split
+                        max_depth=10             thresholds (more randomization).
+                                                 Often faster than RF.
+
+GradientBoosting        n_estimators=100         Sequentially builds trees to
+                        max_depth=3              correct previous errors.
+                                                 Strong but slower to train.
+
+HistGradientBoosting    max_iter=100             Histogram-based gradient boost.
+                        max_depth=5              Faster than standard GB for
+                                                 larger datasets (bins features).
+
+AdaBoost                n_estimators=50          Sequentially weights misclassified
+                                                 samples more heavily.
+
+Bagging                 n_estimators=50          Bootstrap aggregation of base
+                                                 classifiers (default: trees).
+
+DecisionTree            max_depth=10             Single tree. Included as a
+                                                 baseline (usually weaker).
+
+--------------------------------------------------------------------------------
+BOOSTING MODELS (3 models, optional -- graceful fallback if not installed)
+--------------------------------------------------------------------------------
+Model                   Key Parameters           How It Works
+---------------------   ----------------------   ----------------------------
+XGBoost                 n_estimators=100         eXtreme Gradient Boosting.
+                        max_depth=5              Regularized boosting with
+                                                 column subsampling.
+
+LightGBM                n_estimators=100         Light Gradient Boosting Machine.
+                        max_depth=5              Leaf-wise growth (vs level-wise).
+                                                 Very fast on tabular data.
+
+CatBoost                iterations=100           Gradient boosting with ordered
+                        depth=5                  boosting to reduce overfitting.
+                                                 Handles categorical features.
+
+--------------------------------------------------------------------------------
+LINEAR MODELS (5 models)
+--------------------------------------------------------------------------------
+Model                   Key Parameters           How It Works
+---------------------   ----------------------   ----------------------------
+LogisticRegression_L2   penalty=l2               Standard logistic regression
+                        solver=lbfgs             with ridge (L2) regularization.
+
+LogisticRegression_L1   penalty=l1               Logistic regression with lasso
+                        solver=saga              (L1) regularization. Promotes
+                                                 sparse coefficients (feature
+                                                 selection).
+
+LogReg_ElasticNet       penalty=elasticnet       Logistic regression with combined
+                        l1_ratio=0.5             L1 + L2 regularization. Balance
+                                                 between sparsity and grouping.
+
+RidgeClassifier         --                       Linear classifier using ridge
+                                                 regression. Fast, no probabilistic
+                                                 output.
+
+SGDClassifier           loss=log_loss            Stochastic Gradient Descent with
+                        penalty=l2               log loss (equivalent to logistic
+                                                 regression but scales to larger
+                                                 datasets).
+
+--------------------------------------------------------------------------------
+SUPPORT VECTOR MACHINES (4 models)
+--------------------------------------------------------------------------------
+Model                   Key Parameters           How It Works
+---------------------   ----------------------   ----------------------------
+LinearSVC               max_iter=10000           Linear SVM using liblinear.
+                                                 Fast for high-dimensional data.
+                                                 No probability estimates.
+
+SVC_linear              kernel=linear            SVM with linear kernel.
+                        probability=True         Slower than LinearSVC but
+                                                 provides probability estimates.
+
+SVC_rbf                 kernel=rbf               SVM with radial basis function
+                        probability=True         kernel. Captures nonlinear
+                                                 decision boundaries.
+
+NuSVC                   probability=True         Nu-SVM: parameter nu controls
+                                                 fraction of support vectors.
+
+--------------------------------------------------------------------------------
+OTHER MODELS (5 models)
+--------------------------------------------------------------------------------
+Model                   How It Works
+---------------------   ------------------------------------------------
+KNeighbors              K-Nearest Neighbors (k=5). Classifies by majority
+                        vote of 5 closest training samples. Non-parametric.
+
+NearestCentroid         Assigns to class with nearest centroid (mean).
+                        Very fast, linear decision boundary.
+
+GaussianNB              Gaussian Naive Bayes. Assumes features are
+                        independent and normally distributed. Fast.
+
+BernoulliNB             Bernoulli Naive Bayes. Designed for binary/boolean
+                        features but works on continuous after binarization.
+
+LDA                     Linear Discriminant Analysis. Finds linear
+                        combination of features that best separates classes.
+                        Also performs dimensionality reduction.
+
+
+================================================================================
+4. SURVIVAL ANALYSIS MODELS (16 TOTAL)
+================================================================================
+
+Task: Predict patient survival time (time-to-event) using slide embeddings.
+Uses censored data: some patients are still alive at last follow-up.
+
+Evaluation: Concordance Index (C-index) via stratified 5-fold CV.
+    C-index = probability that, for a random pair of patients, the one
+    predicted to die first actually does die first.
+    C-index = 0.5 --> random predictions
+    C-index = 1.0 --> perfect predictions
+
+--------------------------------------------------------------------------------
+COX-BASED MODELS (4 models, from scikit-survival)
+--------------------------------------------------------------------------------
+Model                   Key Parameters           How It Works
+---------------------   ----------------------   ----------------------------
+CoxPH                   --                       Cox Proportional Hazards.
+                                                 Assumes log-linear hazard:
+                                                 h(t|X) = h0(t) * exp(X*beta).
+                                                 The foundational survival model.
+
+CoxnetLasso             l1_ratio=1.0             Cox model with L1 (lasso)
+                        alpha_min_ratio=0.01     regularization. Performs
+                                                 automatic feature selection.
+
+CoxnetRidge             l1_ratio=0.01            Cox model with near-L2 (ridge)
+                        alpha_min_ratio=0.01     regularization. Shrinks all
+                                                 coefficients toward zero.
+
+CoxnetElasticNet        l1_ratio=0.5             Cox model with elastic net
+                        alpha_min_ratio=0.01     regularization (50% L1 + 50% L2).
+
+--------------------------------------------------------------------------------
+TREE-BASED SURVIVAL MODELS (4 models, from scikit-survival)
+--------------------------------------------------------------------------------
+Model                   Key Parameters           How It Works
+---------------------   ----------------------   ----------------------------
+GradientBoostingSurv    n_estimators=100         Gradient boosting adapted for
+                        max_depth=3              survival analysis (optimizes
+                                                 concordance or partial likelihood).
+
+ComponentwiseGB         n_estimators=100         Component-wise gradient boosting.
+                                                 Updates one feature at a time.
+                                                 Built-in feature selection.
+
+RandomSurvivalForest    n_estimators=100         Random forest adapted for censored
+                        max_depth=5              survival data. Ensemble of survival
+                                                 trees. Uses log-rank splitting.
+
+ExtraSurvivalTrees      n_estimators=100         Extra-randomized survival trees.
+                        max_depth=5              More randomization than RSF.
+
+--------------------------------------------------------------------------------
+SVM-BASED SURVIVAL MODELS (2 models, from scikit-survival)
+--------------------------------------------------------------------------------
+Model                   Key Parameters           How It Works
+---------------------   ----------------------   ----------------------------
+FastSurvivalSVM         --                       Ranking-based SVM for survival.
+                                                 Optimizes concordance index
+                                                 directly using pairwise ranking.
+
+FastKernelSurvivalSVM   kernel=rbf               Kernel SVM for survival.
+                                                 Uses RBF kernel for nonlinear
+                                                 patterns. Slower but more flexible.
+
+--------------------------------------------------------------------------------
+OTHER scikit-survival (1 model)
+--------------------------------------------------------------------------------
+Model                   How It Works
+---------------------   ------------------------------------------------
+IPCRidge                Inverse Probability of Censoring weighted Ridge
+                        regression. Adjusts for censoring bias.
+
+--------------------------------------------------------------------------------
+ACCELERATED FAILURE TIME MODELS (4 models, from lifelines)
+--------------------------------------------------------------------------------
+AFT models assume: log(T) = X*beta + sigma*W, where W follows a known
+distribution. They directly model survival TIME (not hazard).
+
+Model                   Distribution Assumed     How It Works
+---------------------   ----------------------   ----------------------------
+CoxPHFitter             Semi-parametric          lifelines implementation of
+                                                 Cox PH. Different optimizer
+                                                 than scikit-survival version.
+
+WeibullAFT              Weibull                  Assumes survival times follow
+                                                 a Weibull distribution.
+                                                 Models both scale and shape.
+
+LogNormalAFT            Log-Normal               Assumes log(survival time) is
+                                                 normally distributed.
+                                                 Good when hazard rises then falls.
+
+LogLogisticAFT          Log-Logistic             Assumes log(survival time) follows
+                                                 logistic distribution.
+                                                 Allows non-monotone hazard.
+
+
+================================================================================
+5. CLUSTERING & STATISTICAL TESTS
+================================================================================
+
+Clustering discovers natural groupings in the data without using labels.
+
+PIPELINE:
+1. StandardScaler normalization (zero mean, unit variance)
+2. PCA to reduce dimensions (retain 95% variance)
+3. K-means clustering (k = 2 to 10, optimal by silhouette score)
+4. Hierarchical clustering (Ward linkage)
+5. Statistical testing of cluster associations
+
+CLUSTERING METHODS:
+    K-means: Partitions data into k clusters by minimizing within-cluster
+             sum of squared distances. Tests k=2 through k=10.
+             Optimal k chosen by silhouette score.
+
+    Ward:    Hierarchical agglomerative clustering that minimizes total
+             within-cluster variance at each merge step. Produces a
+             dendrogram showing cluster relationships.
+
+EVALUATION METRICS:
+    Silhouette Score (-1 to 1):
+        Measures how similar a sample is to its own cluster vs nearest
+        cluster. Score > 0.5 indicates reasonable clustering.
+
+    Calinski-Harabasz Index (higher = better):
+        Ratio of between-cluster to within-cluster dispersion.
+        Higher values indicate better-defined clusters.
+
+STATISTICAL TESTS:
+    Chi-square test:
+        Tests whether cluster assignments are associated with tumor/normal
+        status. Significant p-value means clusters capture biology.
+
+    Log-rank test:
+        Tests whether clusters have different survival curves.
+        Significant p-value means clustering identifies prognostic groups.
+
+    FDR Correction (Benjamini-Hochberg):
+        Corrects p-values for multiple testing across all 43 aggregation
+        methods. Controls false discovery rate at alpha = 0.05.
+
+
+================================================================================
+6. CROSS-VALIDATION STRATEGY
+================================================================================
+
+Two CV strategies are used to evaluate every (aggregation, model) combination:
+
+1. STRATIFIED 5-FOLD CV (primary):
+    - Data split into 5 equal folds, maintaining tumor/normal ratio
+    - Each fold used as test set once, train on remaining 4 folds
+    - Reports: mean +/- std of metrics across 5 folds
+    - Advantage: robust estimate with variance information
+
+2. LEAVE-ONE-OUT CV (supplementary, classification only):
+    - N iterations: each sample used as test set once
+    - Train on N-1 samples, predict 1 sample
+    - Reports: single metric value across all N predictions
+    - Advantage: maximum training data per iteration (important for small N)
+    - Disadvantage: high variance, computationally expensive
+
+PREPROCESSING WITHIN CV:
+    - StandardScaler fitted on TRAINING fold only (prevents data leakage)
+    - PCA fitted on TRAINING fold only (prevents data leakage)
+    - Test fold transformed using training fold's scaler and PCA
+
+
+================================================================================
+7. SUMMARY TABLES
+================================================================================
+
+TABLE 1: Aggregation Methods Overview
++-----+-----------------------+--------+-------+-------+-----+
+| #   | Category              | Count  | Dims  | Robust| Speed|
++-----+-----------------------+--------+-------+-------+-----+
+| 2a  | Central Tendency      |    6   | 1,536 | Mixed | Fast |
+| 2b  | Dispersion / Spread   |    7   | 1,536 | Mixed | Fast |
+| 2c  | Distribution Shape    |    3   | 1,536 | Low   | Med  |
+| 2d  | Percentiles           |    7   | 1,536 | High  | Fast |
+| 2e  | Extreme Values/Top-K  |    8   | 1,536 | Low   | Fast |
+| 2f  | Weighted              |    2   | 1,536 | Med   | Slow |
+| 2g  | Energy / Magnitude    |    2   | 1,536 | Low   | Fast |
+| 2h  | Mega-Vectors          |    8   | 4,608-| Mixed | Med  |
+|     |                       |        | 10,752|       |      |
++-----+-----------------------+--------+-------+-------+-----+
+| TOT |                       |   43   |       |       |      |
++-----+-----------------------+--------+-------+-------+-----+
+
+TABLE 2: Classification Models Overview
++-----+-----------------------+--------+---------+--------+----------+
+| #   | Category              | Count  | Library | Speed  | Optional |
++-----+-----------------------+--------+---------+--------+----------+
+|     | Tree Ensembles        |    7   | sklearn | Med    | No       |
+|     | Boosting (external)   |    3   | xgb/lgb | Med    | Yes      |
+|     | Linear                |    5   | sklearn | Fast   | No       |
+|     | SVM                   |    4   | sklearn | Slow   | No       |
+|     | Neighbors             |    2   | sklearn | Fast   | No       |
+|     | Naive Bayes           |    2   | sklearn | Fast   | No       |
+|     | Discriminant Analysis |    1   | sklearn | Fast   | No       |
++-----+-----------------------+--------+---------+--------+----------+
+| TOT |                       |   24   |         |        |          |
++-----+-----------------------+--------+---------+--------+----------+
+
+TABLE 3: Survival Models Overview
++-----+-----------------------+--------+----------+--------+----------+
+| #   | Category              | Count  | Library  | Speed  | Approach |
++-----+-----------------------+--------+----------+--------+----------+
+|     | Cox-based             |    4   | sksurv   | Fast   | Hazard   |
+|     | Gradient Boosting     |    2   | sksurv   | Med    | Hazard   |
+|     | Forest                |    2   | sksurv   | Med    | Hazard   |
+|     | SVM                   |    2   | sksurv   | Slow   | Ranking  |
+|     | Ridge                 |    1   | sksurv   | Fast   | Hazard   |
+|     | AFT (lifelines)       |    4   | lifelines| Fast   | Time     |
+|     | Cox (lifelines)       |    1   | lifelines| Fast   | Hazard   |
++-----+-----------------------+--------+----------+--------+----------+
+| TOT |                       |   16   |          |        |          |
++-----+-----------------------+--------+----------+--------+----------+
+
+TABLE 4: Total Experiment Count
++------------------------------------------+-------+
+| Metric                                   | Count |
++------------------------------------------+-------+
+| Aggregation methods                      |    43 |
+| Classification models                    |    24 |
+| Survival models                          |    16 |
+| Classification experiments (43 x 24)     | 1,032 |
+| Survival experiments (43 x 16)           |   688 |
+| Total modeling experiments               | 1,720 |
+| CV: 5-fold classification (1,032 x 5)    | 5,160 |
+| CV: LOO classification (1,032 x N)       |~113k  |
+| CV: 5-fold survival (688 x 5)            | 3,440 |
++------------------------------------------+-------+
+
+TABLE 5: Evaluation Metrics
++------------------+-----------+-----+--------------------------------------+
+| Metric           | Range     | Best| Description                          |
++------------------+-----------+-----+--------------------------------------+
+| AUC-ROC          | 0.0 - 1.0 | 1.0 | Area under ROC curve. 0.5 = random. |
+| F1 Score         | 0.0 - 1.0 | 1.0 | Harmonic mean of precision & recall. |
+| Accuracy         | 0.0 - 1.0 | 1.0 | Fraction of correct predictions.     |
+| Precision        | 0.0 - 1.0 | 1.0 | TP / (TP + FP). Low false positives. |
+| Recall           | 0.0 - 1.0 | 1.0 | TP / (TP + FN). Low false negatives. |
+| C-index          | 0.0 - 1.0 | 1.0 | Concordance for survival ranking.    |
+| Silhouette       |-1.0 - 1.0 | 1.0 | Cluster cohesion vs separation.      |
+| Calinski-Harabasz| 0 - inf   | High| Between/within cluster variance.     |
++------------------+-----------+-----+--------------------------------------+
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================

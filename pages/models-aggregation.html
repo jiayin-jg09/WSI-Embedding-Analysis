@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aggregation methods · WSI Pan-Cancer</title>
+<meta name="description" content="How a slide's variable number of patch embeddings is aggregated into one fixed-length vector — the summary statistics, the 'rich' default, and the broader taxonomy of methods.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · aggregation</div>
+    <h1>Aggregation, explained</h1>
+    <p class="subtitle">
+      Before any classifier or survival model runs, each slide's hundreds-to-thousands of patch
+      embeddings must become <em>one</em> fixed-length vector. That step, aggregation, is quietly
+      one of the most consequential choices in the whole pipeline. This page explains why it's
+      needed, the statistics used, the "rich" default, and the wider menu of methods evaluated.
+    </p>
+  </section>
+
+  <!-- WHY -->
+  <section id="why">
+    <h2>Why aggregate at all?</h2>
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">Variable in, fixed out</div>
+        <h3>Models need a fixed-length vector; slides don't have one</h3>
+        <p>
+          After the UNI2 foundation model, each slide is a stack of patch vectors
+          (<strong>N × 1,536</strong>), but N differs from slide to slide (one slide might have 800
+          patches, another 40,000). Classical models (the Cox, Coxnet, KNN, forests on the other
+          two pages) require every sample to be the <em>same length</em>.
+        </p>
+        <p>
+          <strong>Aggregation</strong> solves this by summarizing the whole stack into one
+          fixed-length slide vector, collapsing the patch dimension while trying to preserve the
+          information that distinguishes slides.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="../figures/models/agg_rich_vector.png" alt="Patches aggregated into one slide vector" data-zoom>
+        <figcaption>Six per-dimension statistics, concatenated into one 9,216-dim slide vector.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="statistics">
+    <h2>The summary statistics</h2>
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="../figures/models/agg_summary_stats.png" alt="Histogram of one embedding dimension with summary statistics" data-zoom>
+        <figcaption>For one embedding dimension across a slide's patches, the mean, spread and percentiles capture the shape of the distribution.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">Per-dimension distributions</div>
+        <h3>Each statistic answers a different question</h3>
+        <p>
+          Think of one of the 1,536 embedding dimensions: across a slide's patches it has a whole
+          <em>distribution</em> of values. A single number has to summarize that distribution, and
+          different statistics keep different things:
+        </p>
+        <ul>
+          <li><strong>Mean</strong>: the typical value (overall character of the slide).</li>
+          <li><strong>Std</strong>: how much patches vary (tumor heterogeneity).</li>
+          <li><strong>Percentiles (P10–P90)</strong>: the shape and tails, robust to outliers.</li>
+        </ul>
+        <p>
+          Using several statistics together keeps far more signal than the mean alone, which can
+          wash out a small but important region of a slide.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RICH DEFAULT -->
+  <section id="rich">
+    <h2>The "rich" default</h2>
+    <p>
+      The shipped pipeline concatenates <strong>six statistics per dimension</strong> (mean, std,
+      P10, P25, P75, P90), turning each slide's <code>N × 1,536</code> patch matrix into a single
+      <strong>9,216-dimensional</strong> vector (6 × 1,536). It captures central tendency
+      (<em>mean</em>), spread (<em>std</em>), and the distribution's shape and tails
+      (<em>the four percentiles</em>) while staying simple, deterministic, and cheap to compute,
+      important on a thermally-constrained laptop. A plain <strong>mean-only</strong> aggregation
+      (1,536-dim) is also supported as a lightweight fallback.
+    </p>
+    <div class="callout">
+      The 9,216-dim vector is high relative to the cohort sizes, which is exactly why every
+      downstream model is preceded by <a href="models-classification.html#concepts">PCA</a> (95%
+      variance) and penalized / regularized fitting. See the model pages.
+    </div>
+  </section>
+
+  <!-- TAXONOMY -->
+  <section id="taxonomy">
+    <h2>The broader taxonomy</h2>
+    <p>
+      The "rich" six are a deliberate subset of a much larger menu of aggregation methods explored
+      in earlier runs. Grouped by what they capture:
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Family</th><th>Methods</th><th>Captures</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Central tendency</strong></td><td>mean, median, trimmed mean, winsorized mean, geometric &amp; harmonic mean</td><td>the typical patch value, with varying outlier-robustness</td></tr>
+          <tr><td><strong>Spread</strong></td><td>std, variance, range, IQR, MAD, coefficient of variation, mid-range</td><td>how heterogeneous the slide's patches are</td></tr>
+          <tr><td><strong>Shape</strong></td><td>skewness, kurtosis, entropy</td><td>asymmetry and tail-heaviness of the distribution</td></tr>
+          <tr><td><strong>Percentiles</strong></td><td>P5, P10, P25, P50, P75, P90, P95, min, max</td><td>the full profile of the distribution, robustly</td></tr>
+          <tr><td><strong>Extremes</strong></td><td>top-5/10 mean, bottom-5/10 mean</td><td>the most distinctive (often most diagnostic) patches</td></tr>
+          <tr><td><strong>Weighted / energy</strong></td><td>entropy-weighted mean, variance-weighted mean, RMS, sum-abs</td><td>emphasis on informative or high-magnitude patches</td></tr>
+          <tr><td><strong>Combined ("mega")</strong></td><td>mean+minmax, mean+extremes, central+spread, robust, full distribution</td><td>concatenations spanning several families at once</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="fig-wide">
+      <img src="../figures/fig2_aggregation_methods.png" alt="Aggregation methods taxonomy diagram" data-zoom>
+      <figcaption>
+        The full aggregation taxonomy. The consolidated pipeline ships with the "rich" method
+        (mean + std + P10/25/75/90) as its default; the rest document alternatives evaluated in
+        earlier runs. Click to enlarge.
+      </figcaption>
+    </div>
+
+    <div class="callout">
+      <strong>Why not just use the biggest "mega" vector?</strong> More statistics means more
+      dimensions on cohorts of tens-to-hundreds of patients, quickly hitting diminishing returns
+      and overfitting risk. The "rich" six were chosen as the sweet spot between expressiveness and
+      stability. See the <a href="methods.html#aggregation">Methods</a> for how it plugs into the
+      rest of the pipeline.
+    </div>
+  </section>
+
+  <!-- PCA: SEEING IT -->
+  <section id="pca">
+    <h2>Seeing it: PCA of the aggregated embeddings</h2>
+    <p class="lead">
+      The clearest way to feel what aggregation does is to project the slide vectors down to 2
+      dimensions with PCA and look. These are <strong>real</strong> embeddings from the project,
+      not synthetic.
+    </p>
+
+    <h3 style="color:var(--accent)">All 8 cancers, mean aggregation</h3>
+    <p>
+      Each point is one slide's mean-aggregated embedding, colored by cancer type. Even with no
+      labels given to the projection, cancers occupy distinct regions: adrenocortical (ACC) pulls
+      cleanly to one side, and the gastrointestinal cancers (COAD, STAD, READ, ESCA) overlap as
+      you'd expect from related tissue.
+    </p>
+    <div class="fig-grid">
+      <figure>
+        <img src="../figures/pca/pca_mean_bycancer.png" alt="PCA of mean-aggregated embeddings by cancer type" data-zoom>
+        <figcaption>Mean aggregation: ~2,075 tumor slides, colored by cancer type.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/pca/pca_median_bycancer.png" alt="PCA of median-aggregated embeddings by cancer type" data-zoom>
+        <figcaption>Median aggregation: a robust alternative; structure is very similar.</figcaption>
+      </figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Every method, by cancer type</h3>
+    <p>
+      To compare the <em>whole</em> aggregation menu fairly, all 2,075 tumor slides were
+      re-aggregated from the raw patch embeddings with each of <strong>31 methods</strong>, then
+      projected by PCA and colored by cancer type. The choice of statistic genuinely reshapes the
+      embedding space: mean, median, the percentiles and trimmed/winsorized means preserve the
+      cancer-type structure most clearly; spread measures (std, IQR, MAD) give a complementary
+      view; and a few (coefficient of variation, harmonic mean) collapse most of the signal,
+      a visual argument for why the pipeline's "rich" default leans on mean + percentiles.
+    </p>
+    <div class="fig-wide">
+      <img src="../figures/pca/pca_allmethods_bycancer_grid.png" alt="PCA per aggregation method by cancer type (31 methods)" data-zoom>
+      <figcaption>All 31 aggregation methods (PCA, 2,075 tumor slides), colored by cancer type. Click to enlarge.</figcaption>
+    </div>
+
+    <h3 style="color:var(--accent)">A complementary view: tumor vs normal (CHOL)</h3>
+    <p>
+      The same method menu on the original CHOL cohort, colored by tumor vs normal instead of
+      cancer type. Almost every method separates tumor from normal tissue, which is why
+      tumor-vs-normal classification <em>saturates</em> at AUC ≈ 1.0, and why the interesting
+      differences between methods only surface on harder targets like tumor grade.
+    </p>
+    <div class="fig-wide">
+      <img src="../figures/pca/pca_chol_methods_grid.png" alt="PCA per aggregation method on CHOL, tumor vs normal" data-zoom>
+      <figcaption>18 aggregation methods on the 59-slide CHOL cohort (PCA, tumor vs normal). Click to enlarge.</figcaption>
+    </div>
+
+    <h3 style="color:var(--accent)">Does the method matter for <em>prediction</em>?</h3>
+    <p>
+      PCA shows the aggregation choice reshapes the embedding <em>structure</em>, but does it
+      change what we can actually <em>predict</em>? To find out, every one of the 31 methods was
+      run through the same two downstream pipelines: pan-cancer pooled survival (cancer-stratified
+      5-fold CV, CoxnetLasso on the WSI features, 1,608 patients / 557 events) and tumor-grade
+      classification (low G1/G2 vs high G3/G4, 926 graded slides, grouped by participant). Each
+      method is then ranked by its held-out performance.
+    </p>
+    <div class="fig-wide">
+      <img src="../figures/agg_method_comparison.png" alt="Aggregation methods ranked by survival C-index and grade AUC" data-zoom>
+      <figcaption>Each of the 31 aggregation methods ranked by downstream prediction: within-cancer survival C-index (left) and best tumor-grade AUC (right). The dashed line is the age+sex clinical baseline. Click to enlarge.</figcaption>
+    </div>
+    <p>
+      The answer is a clear <strong>yes</strong>: survival concordance spans <strong>0.50 → 0.60</strong>
+      and grade AUC spans <strong>0.54 → 0.77</strong> depending purely on how the patch embeddings
+      are pooled. And the ranking tells a consistent story: <strong>central-tendency and
+      percentile statistics win</strong> (median, the 75th/90th percentiles, trimmed and winsorized
+      means), <strong>robust statistics slightly edge out the plain mean</strong> on both tasks,
+      while <strong>pure spread/shape measures lag</strong>: std, IQR and MAD land near the age+sex
+      baseline (0.547), and the coefficient of variation collapses to chance (C ≈ 0.50, grade
+      AUC 0.54). It's the percentiles, not the spread, that carry the signal, which is exactly why
+      the pipeline's shipped "rich" default combines mean + percentiles.
+    </p>
+    <table class="sortable">
+      <thead>
+        <tr>
+          <th>Aggregation method</th>
+          <th class="num">Survival C (stratified)</th>
+          <th class="num">Grade AUC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>percentile_75</strong></td><td class="num" data-sort="0.6012">0.601</td><td class="num" data-sort="0.7694">0.769</td></tr>
+        <tr><td><strong>percentile_90</strong></td><td class="num" data-sort="0.6004">0.600</td><td class="num" data-sort="0.7587">0.759</td></tr>
+        <tr><td><strong>median</strong></td><td class="num" data-sort="0.5937">0.594</td><td class="num" data-sort="0.7741">0.774</td></tr>
+        <tr><td><strong>percentile_25</strong></td><td class="num" data-sort="0.5940">0.594</td><td class="num" data-sort="0.7701">0.770</td></tr>
+        <tr><td><strong>trimmed_mean</strong></td><td class="num" data-sort="0.5908">0.591</td><td class="num" data-sort="0.7721">0.772</td></tr>
+        <tr><td><strong>mean</strong></td><td class="num" data-sort="0.5896">0.590</td><td class="num" data-sort="0.7692">0.769</td></tr>
+        <tr><td><strong>winsorized_mean</strong></td><td class="num" data-sort="0.5886">0.589</td><td class="num" data-sort="0.7695">0.770</td></tr>
+        <tr><td><strong>geometric_mean</strong></td><td class="num" data-sort="0.5877">0.588</td><td class="num" data-sort="0.7286">0.729</td></tr>
+        <tr><td><strong>rms</strong></td><td class="num" data-sort="0.5813">0.581</td><td class="num" data-sort="0.7411">0.741</td></tr>
+        <tr class="row-base"><td><em>age + sex baseline</em></td><td class="num" data-sort="0.5472">0.547</td><td class="num" data-sort="0">—</td></tr>
+        <tr><td><strong>entropy</strong></td><td class="num" data-sort="0.5467">0.547</td><td class="num" data-sort="0.7335">0.734</td></tr>
+        <tr><td><strong>std</strong></td><td class="num" data-sort="0.5382">0.538</td><td class="num" data-sort="0.7227">0.723</td></tr>
+        <tr><td><strong>iqr</strong></td><td class="num" data-sort="0.5380">0.538</td><td class="num" data-sort="0.7211">0.721</td></tr>
+        <tr><td><strong>kurtosis</strong></td><td class="num" data-sort="0.5286">0.529</td><td class="num" data-sort="0.6352">0.635</td></tr>
+        <tr><td><strong>cv</strong> (coef. of variation)</td><td class="num" data-sort="0.5026">0.503</td><td class="num" data-sort="0.5372">0.537</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="font-size:0.9em">
+      Representative subset of the 31 methods (full tables in
+      <code>results_v2/agg_full/survival_method_comparison.csv</code> and
+      <code>classification_grade_method_comparison.csv</code>). <strong>Caveat:</strong> this is a
+      thermally-light first pass: pooled 5-fold CV with a fixed 50-component PCA and a 200-sample
+      bootstrap. The ranking is robust, but the absolute numbers will firm up under the planned
+      full-rigor rerun (leave-one-participant-out + 1,000-sample bootstrap). Tumor grade is pooled
+      across cancers whose grading systems differ, so it ranks methods on a fixed label set rather
+      than making a clinical-grade claim.
+    </p>
+
+    <div class="callout">
+      Unsupervised clustering of these same embeddings, and the statistics testing whether the
+      groups are meaningful, are covered on the
+      <a href="models-clustering.html">Clustering &amp; Statistics</a> page.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

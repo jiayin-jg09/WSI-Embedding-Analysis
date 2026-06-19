@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What the embedding encodes · WSI Pan-Cancer</title>
+<meta name="description" content="Correlating each UNI2 embedding dimension with molecular features (immune, expression, mutations, CNV, proteins): histology embeddings encode the tumor microenvironment and expression state, not specific mutations. Plus a UNI2 vs CTransPath comparison.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · biology</div>
+    <h1>What does the embedding actually encode?</h1>
+    <p class="subtitle">
+      Each slide becomes 1,536 numbers from the UNI2 foundation model, but what do those
+      numbers <em>mean</em>? To find out, every embedding dimension was correlated against the
+      tumor's molecular data (gene expression, mutations, copy number, protein levels and immune
+      composition) across roughly 1,800 patients. The short answer: these histology features
+      read out the tumor's microenvironment and expression state far more than its specific
+      mutations.
+    </p>
+  </section>
+
+  <!-- METHOD -->
+  <section id="how">
+    <h2>How we asked the question</h2>
+    <p>
+      Using the lab's TCGA multi-omics tables, each patient's UNI2 slide vector was lined up
+      with their molecular profile. For every pairing of an embedding dimension with a molecular
+      feature we computed a Spearman correlation, with Benjamini-Hochberg control for the huge
+      number of tests. Each correlation is reported two ways:
+    </p>
+    <ul>
+      <li><strong>Pooled</strong>: across all patients at once. This is optimistic, because a
+        dimension that simply separates colon from liver tumors will correlate with anything
+        that also differs between those cancers.</li>
+      <li><strong>Within-cancer</strong>: cancer type is statistically removed first (the same
+        honesty step used for the pooled survival model), leaving the signal that holds
+        <em>inside</em> a single cancer. This is the trustworthy number.</li>
+    </ul>
+    <div class="callout">
+      The gap between the two is itself informative: a large drop from pooled to within-cancer
+      means most of the apparent signal was just the embedding recognising the cancer type.
+    </div>
+  </section>
+
+  <!-- BIOLOGY -->
+  <section id="biology">
+    <h2>Microenvironment and expression, not mutations</h2>
+    <p>
+      The chart below shows how strongly UNI2 encodes each kind of molecular data: for every
+      feature we take its best correlation across all dimensions, then the typical (median)
+      value across features. Pooled bars are always taller, confirming the cancer-type
+      confound. The within-cancer bars are the real story.
+    </p>
+    <div class="fig-wide">
+      <img src="../figures/uni2_biology_encoded.png" alt="Pooled vs within-cancer encodability per omic" data-zoom>
+      <figcaption>How strongly UNI2 dimensions encode each molecular data type, pooled vs within cancer. Click to enlarge.</figcaption>
+    </div>
+    <p>
+      Counting the dimension-feature pairs that stay significant <em>within</em> cancer type
+      makes the ranking concrete:
+    </p>
+    <table class="sortable">
+      <thead>
+        <tr>
+          <th>Molecular data</th>
+          <th class="num">Within-cancer significant pairs</th>
+          <th>What it captures</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Gene expression</strong></td><td class="num" data-sort="429236">429,236</td><td>transcriptional / epithelial programs</td></tr>
+        <tr><td><strong>Copy-number</strong></td><td class="num" data-sort="376276">376,276</td><td>broad genomic-instability burden</td></tr>
+        <tr><td><strong>Immune signatures</strong></td><td class="num" data-sort="124012">124,012</td><td>immune / microenvironment programs</td></tr>
+        <tr><td><strong>RPPA proteins</strong></td><td class="num" data-sort="33724">33,724</td><td>protein abundance</td></tr>
+        <tr><td><strong>Immune cell fractions</strong></td><td class="num" data-sort="5078">5,078</td><td>leukocyte / immune infiltration</td></tr>
+        <tr><td><strong>Mutations</strong></td><td class="num" data-sort="62">62</td><td>almost nothing within cancer type</td></tr>
+      </tbody>
+    </table>
+    <p>
+      The pattern is biologically sensible. Immune infiltration, tissue architecture and overall
+      expression state leave visible marks on an H&amp;E slide, so the embedding picks them up.
+      A single point mutation usually does not change how the tissue looks, so once cancer type
+      is removed almost no mutation signal survives (62 pairs, versus hundreds of thousands for
+      expression). The strong pooled mutation hits are really the embedding recognising cancer type.
+    </p>
+  </section>
+
+  <!-- PREDICTABILITY -->
+  <section id="predict">
+    <h2>How much can the <em>whole</em> embedding predict?</h2>
+    <p>
+      The numbers above are one dimension at a time. But biology is usually spread across many
+      dimensions, so the stronger question is: train a model on <em>all</em> 1,536 dimensions at
+      once and see how much of a molecular readout it can predict. Using cross-validated ridge
+      regression (cancer-stratified, scored within cancer type), the embedding turns out to be a
+      genuinely good molecular predictor for everything except mutations.
+    </p>
+    <div class="fig-wide">
+      <img src="../figures/uni2_predictability.png" alt="Within-cancer predictive performance per molecular group, mean vs std block" data-zoom>
+      <figcaption>How much of each molecular readout the full UNI2 embedding predicts, within cancer type. Click to enlarge.</figcaption>
+    </div>
+    <table class="sortable">
+      <thead>
+        <tr><th>Molecular readout</th><th class="num">Within-cancer predictive score</th><th>note</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Immune signatures</strong></td><td class="num" data-sort="0.29">R² 0.29</td><td>microenvironment programs</td></tr>
+        <tr><td><strong>Genomic instability</strong></td><td class="num" data-sort="0.27">R² 0.27</td><td>TMB, aneuploidy, subclonal entropy</td></tr>
+        <tr><td><strong>Tumor purity</strong></td><td class="num" data-sort="0.24">R² 0.24</td><td>tumor vs normal-tissue content</td></tr>
+        <tr><td><strong>Immune cell fractions</strong></td><td class="num" data-sort="0.05">R² 0.05</td><td>individual cell types are noisy</td></tr>
+        <tr><td><strong>Driver mutations</strong></td><td class="num" data-sort="0.59">AUC 0.59</td><td>barely above chance</td></tr>
+      </tbody>
+    </table>
+    <p>
+      A within-cancer R² near 0.3 is far above what any single dimension reaches (best single-dim
+      r² ≈ 0.06), so the molecular signal really is <strong>distributed across the embedding</strong>.
+      Notably, the model reads out <strong>genomic instability</strong> (mutation burden,
+      aneuploidy) from appearance alone, even though it cannot call the individual mutations.
+    </p>
+    <div class="callout">
+      <strong>Does heterogeneity help?</strong> Re-running with the <em>std</em> aggregation, which
+      captures how much patches <em>vary</em> within a slide, gives consistently lower scores than
+      the mean (e.g. instability R² 0.20 vs 0.27). So intra-slide heterogeneity carries real but
+      <em>weaker</em> molecular signal than the average appearance, even for instability where we
+      expected it to shine. An honest negative result.
+    </div>
+    <div class="callout">
+      <strong>Robust to tumor purity.</strong> Re-computing the within-cancer correlations with
+      tumor purity removed as an extra covariate (not just cancer type) changes the number of
+      significant pairs by under 0.5% (immune signatures 124,012 → 123,916; expression
+      429,236 → 430,515). The signal reflects tumor biology, not merely how much tumor versus
+      normal tissue sits on the slide.
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <section id="compare">
+    <h2>Two models, the same biology</h2>
+    <p>
+      Is this a quirk of UNI2, or a property of histology itself? The mentor's lab ran the same
+      analysis with a different foundation model, <strong>CTransPath</strong>, on the same
+      slides. Because the two models have different dimensions, we compare them per feature: how
+      well does the <em>best</em> dimension of each model encode a given molecular feature? If
+      the two agree, they are reading the same underlying biology.
+    </p>
+    <div class="fig-wide">
+      <img src="../figures/uni2_vs_ctranspath.png" alt="UNI2 vs CTransPath per-feature encodability scatter, by omic" data-zoom>
+      <figcaption>Per-feature best correlation, UNI2 vs CTransPath, one panel per data type. Points on the diagonal mean the two models agree. Click to enlarge.</figcaption>
+    </div>
+    <p>
+      They agree closely. The rank correlation between the two models' per-feature encodability
+      is high across the board, which means the molecular signal in a histology embedding is
+      largely a property of the tissue, not of any one model.
+    </p>
+    <table class="sortable">
+      <thead>
+        <tr><th>Molecular data</th><th class="num">UNI2 ↔ CTransPath agreement (Spearman)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Immune signatures</strong></td><td class="num" data-sort="0.945">0.95</td></tr>
+        <tr><td><strong>RPPA proteins</strong></td><td class="num" data-sort="0.931">0.93</td></tr>
+        <tr><td><strong>Gene expression</strong></td><td class="num" data-sort="0.928">0.93</td></tr>
+        <tr><td><strong>Immune cell fractions</strong></td><td class="num" data-sort="0.913">0.91</td></tr>
+        <tr><td><strong>Copy-number</strong></td><td class="num" data-sort="0.823">0.82</td></tr>
+        <tr><td><strong>Mutations</strong></td><td class="num" data-sort="0.747">0.75</td></tr>
+      </tbody>
+    </table>
+    <p>
+      Agreement is weakest for mutations (0.75), which fits the picture above: both models encode
+      mutations only weakly and noisily, so there is less stable signal to agree on.
+    </p>
+  </section>
+
+  <!-- CAVEATS -->
+  <section id="caveats">
+    <h2>How to read this</h2>
+    <ul>
+      <li>These are <strong>correlations</strong>, not proof that the model "sees" a gene; a
+        dimension may track expression because both follow tissue morphology.</li>
+      <li>Results use the <strong>mean</strong> aggregation and the 8-cancer cohort; the within-
+        cancer numbers are the honest ones, the pooled numbers carry cancer-type confounding.</li>
+      <li>CTransPath is a separate foundation model analysed by the mentor's lab on the same
+        slides; the molecular tables are TCGA data that lives outside this repository.</li>
+    </ul>
+    <div class="callout">
+      Methodology for the embeddings and aggregation lives on the
+      <a href="models-aggregation.html">Aggregation</a> page; the cancer-type-removal idea
+      mirrors the within-cancer C-index on the <a href="models-survival.html">Survival</a> page.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WSI Embedding Analysis · TCGA Pan-Cancer</title>
+<meta name="description" content="A thermal-safe, leakage-aware pipeline turning whole-slide image embeddings into honest classification and survival predictions on TCGA cohorts.">
+<link rel="stylesheet" href="assets/styles.css">
+<script>
+  // pre-paint theme to avoid flash
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="pages/background.html">Background</a>
+      <a href="pages/overview.html">Story</a>
+      <a href="pages/methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="pages/models-survival.html">Survival</a>
+          <a href="pages/models-classification.html">Classification</a>
+          <a href="pages/models-aggregation.html">Aggregation</a>
+          <a href="pages/models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="pages/models-metrics.html">Metrics</a>
+          <a href="pages/models-omics.html">Biology</a>
+          <a href="pages/models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="pages/results.html">Results</a>
+      <a href="pages/figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="eyebrow">TCGA pan-cancer · UNI2 features · classical ML + survival</div>
+    <h1>WSI Embeddings → Classification &amp; Survival</h1>
+    <p class="subtitle">
+      A thermal-safe, leakage-aware pipeline that turns pre-extracted whole-slide
+      image embeddings into honest predictions on small clinical cohorts.
+      Two findings: a validated tumor-grade signal on TCGA-CHOL
+      (AUC = 0.80, permutation p = 0.005), and a pan-cancer survival framework
+      using pooled leave-one-participant-out C-index with bootstrap CIs,
+      because 5-fold survival CV on n ≈ 50 produces noise, not signal.
+    </p>
+    <div class="stat-row">
+      <div class="stat">
+        <div class="label">Grade AUC · CHOL</div>
+        <div class="value" data-count="0.80" data-decimals="2">0.80</div>
+        <div class="unit">KNN-5, LOO, p = 0.005</div>
+      </div>
+      <div class="stat">
+        <div class="label">Survival cohort</div>
+        <div class="value" data-count="1608" data-decimals="0">1 608</div>
+        <div class="unit">patients across 8 cancers</div>
+      </div>
+      <div class="stat">
+        <div class="label">Best survival C-index</div>
+        <div class="value" data-count="0.84" data-decimals="2">0.84</div>
+        <div class="unit">TCGA-ACC · 95 % CI [0.80, 0.89]</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HEADLINE FINDINGS -->
+  <section id="findings">
+    <h2>Three headline findings</h2>
+    <div class="finding-grid">
+      <div class="finding reveal">
+        <div class="big">0.80</div>
+        <div class="ftitle">A real tumor-grade signal</div>
+        <p>
+          On just 26 balanced CHOL slides, KNN-5 separates low- from high-grade tumors at
+          AUC 0.80, and a 200-shuffle permutation test puts it well outside the null
+          (p = 0.005).
+        </p>
+      </div>
+      <div class="finding reveal">
+        <div class="big">+0.34</div>
+        <div class="ftitle">WSI adds real survival value</div>
+        <p>
+          On TCGA-ACC, imaging lifts the C-index from a near-chance age+sex baseline (0.51)
+          to 0.84 (HR 6.9 per SD). LIHC, CESC, COAD and STAD also show genuine WSI gains.
+        </p>
+      </div>
+      <div class="finding reveal">
+        <div class="big">LOPO</div>
+        <div class="ftitle">Honest small-cohort CV</div>
+        <p>
+          Pooled leave-one-participant-out with a bootstrap CI replaces noisy 5-fold survival
+          CV, exposing that the old "RSF 0.71 ± 0.22" was fold-split noise, not signal.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COHORT SNAPSHOT -->
+  <section id="cohort">
+    <h2>The cohort at a glance</h2>
+    <p class="lead">
+      1 608 patients with valid survival across eight TCGA cancer projects: 557 events,
+      1 051 censored. Survival is modeled per cancer so a model trained on one never predicts
+      another.
+    </p>
+    <div class="chart-wrap tall">
+      <canvas id="cohortChart"></canvas>
+    </div>
+    <p class="chart-caption">Patients per cancer project in the survival cohort (hover for counts and shares).</p>
+  </section>
+
+  <!-- NAV CARDS -->
+  <section id="explore">
+    <h2>Explore the project</h2>
+    <div class="card-grid">
+      <a class="nav-card reveal" href="pages/background.html">
+        <div class="kicker">Start here</div>
+        <h3>Background</h3>
+        <p>TCGA, whole-slide images, foundation models, and why slides get cut into patches. How we began.</p>
+        <span class="arrow">Read the primer →</span>
+      </a>
+      <a class="nav-card reveal" href="pages/overview.html">
+        <div class="kicker">The story</div>
+        <h3>Overview</h3>
+        <p>The classification arc and the survival arc, step by step, including the dead ends.</p>
+        <span class="arrow">Follow the arc →</span>
+      </a>
+      <a class="nav-card reveal" href="pages/methods.html">
+        <div class="kicker">Under the hood</div>
+        <h3>Methods</h3>
+        <p>Aggregation, models, leakage-safe CV, pooled LOPO, the permutation test, thermal design.</p>
+        <span class="arrow">See the methods →</span>
+      </a>
+      <a class="nav-card reveal" href="pages/models-survival.html">
+        <div class="kicker">Explained</div>
+        <h3>Models</h3>
+        <p>Every model in depth with example plots — survival, classification, and aggregation.</p>
+        <span class="arrow">Learn the models →</span>
+      </a>
+      <a class="nav-card reveal" href="pages/results.html">
+        <div class="kicker">Interactive</div>
+        <h3>Results</h3>
+        <p>Sortable tables, per-cancer C-index charts, classifier AUCs and Kaplan–Meier curves.</p>
+        <span class="arrow">Dig into results →</span>
+      </a>
+      <a class="nav-card reveal" href="pages/figures.html">
+        <div class="kicker">Gallery</div>
+        <h3>Figures</h3>
+        <p>Every pipeline diagram, heatmap and survival curve, zoomable in one place.</p>
+        <span class="arrow">Browse figures →</span>
+      </a>
+      <a class="nav-card reveal" href="https://github.com/" target="_blank" rel="noopener">
+        <div class="kicker">Reproduce</div>
+        <h3>Code &amp; data</h3>
+        <p>Single consolidated pipeline, checkpointed and laptop-friendly. Repo + reproduction steps.</p>
+        <span class="arrow">View on GitHub →</span>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

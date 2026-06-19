@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story · WSI Pan-Cancer</title>
+<meta name="description" content="The classification arc on TCGA-CHOL and the survival arc on the pan-cancer UNI2 cohort, told step by step.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">The story · two arcs</div>
+    <h1>How the project unfolded</h1>
+    <p class="subtitle">
+      Foundation models like UNI2 turn whole-slide images into compact patch embeddings.
+      The open question: how far do those embeddings transfer to clinically meaningful tasks
+      on TCGA cohorts with only tens to hundreds of patients per cancer? The answer came in
+      two arcs: first classification on a single cancer, then survival across eight.
+    </p>
+  </section>
+
+  <!-- CLASSIFICATION ARC -->
+  <section id="classification">
+    <h2>Classification arc · TCGA-CHOL</h2>
+    <p class="lead">
+      How an overly easy task can mask a real signal, and how a properly balanced harder
+      target reveals it.
+    </p>
+    <div class="timeline">
+      <div class="step reveal">
+        <div class="step-kicker">Step 1 · Naïve setup</div>
+        <h3>Tumor vs normal hit AUC ≈ 1.00: suspiciously perfect</h3>
+        <p>
+          Predicting tumor vs normal tissue with slide-level cross-validation gave a perfect
+          score. Too perfect to be useful — and the same 15 participants had matched tumor +
+          normal slides, a textbook leakage risk.
+        </p>
+      </div>
+      <div class="step reveal">
+        <div class="step-kicker">Step 2 · Leakage-safe CV</div>
+        <h3>The task is saturated, not leaky</h3>
+        <p>
+          Switching to GroupKFold by participant (so the same patient never appears in both
+          train and test) kept AUC at 1.00. The task is simply <em>saturated</em> on UNI2
+          features, not a leakage artifact.
+        </p>
+      </div>
+      <div class="step reveal">
+        <div class="step-kicker">Step 3 · A harder target</div>
+        <h3>Tumor grade, balanced, N = 26 → AUC 0.80</h3>
+        <p>
+          Switching the target to tumor <em>grade</em> (G1/G2 low vs G3/G4 high) on a perfectly
+          balanced 13:13 set of 26 slides, KNN-5 reached AUC = 0.80, a non-trivial, clinically
+          meaningful distinction.
+        </p>
+      </div>
+      <div class="step win reveal">
+        <div class="step-kicker">Step 4 · Statistical validation</div>
+        <h3>The signal survives a permutation test (p = 0.005)</h3>
+        <p>
+          A 200-shuffle permutation test produced 0 / 200 null AUCs above baseline
+          (p = 0.005, Phipson–Smyth corrected). The grade signal is real, not a small-N fluke.
+        </p>
+      </div>
+    </div>
+
+    <h3>Targets explored, and the two that were discarded</h3>
+    <p>
+      Two further targets were tested and documented as dead ends:
+      <span class="pill bad">BAP1 mutation</span> (AUC 0.64, too class-imbalanced)
+      and <span class="pill bad">PBRM1 mutation</span> (AUC 0.38, anti-correlated noise).
+      The mutation cohort is simply too small (N = 36, 7–8 positives) for that signal to surface.
+    </p>
+    <div class="chart-wrap short">
+      <canvas id="targetChart"></canvas>
+    </div>
+    <p class="chart-caption">
+      Best AUC by classification target. Tumor-vs-normal saturates; grade is the real,
+      validated win; the two mutation targets fall at or below chance.
+    </p>
+  </section>
+
+  <!-- SURVIVAL ARC -->
+  <section id="survival">
+    <h2>Survival arc · TCGA pan-cancer</h2>
+    <p class="lead">
+      Extending to a 1 608-patient cohort, and fixing the noisy cross-validation that was
+      making small-cohort survival results uninterpretable.
+    </p>
+    <div class="timeline">
+      <div class="step reveal">
+        <div class="step-kicker">Step 5 · The CV was noise</div>
+        <h3>"RSF 0.71 ± 0.22" was hiding the absence of signal</h3>
+        <p>
+          5-fold survival CV on 55 CHOL patients reported RSF C-index = 0.71 ± 0.22, a 95% CI
+          of roughly [0.28, 1.15], i.e. uninformative. Each fold had ~5 events, far too few to
+          estimate a meaningful C-index. The wide std measured fold-split noise, not predictive
+          power.
+        </p>
+      </div>
+      <div class="step reveal">
+        <div class="step-kicker">Step 6 · Pooled LOPO + bootstrap</div>
+        <h3>The right tool for small cohorts</h3>
+        <p>
+          Switched to leave-one-participant-out: fit on N − 1, predict the held-out patient's
+          risk, pool all N risks into one C-index, then bootstrap (event, time, risk) triples
+          1 000× for a 95% CI. Every event is used exactly once.
+        </p>
+      </div>
+      <div class="step reveal">
+        <div class="step-kicker">Step 7 · Scale to UNI2</div>
+        <h3>1 608 patients across 8 cancers</h3>
+        <p>
+          Added the UNI2 cohort: 1 608 patients with valid survival (557 events, 1 051 censored)
+          across COAD, STAD, LIHC, CESC, ESCA, READ, ACC and CHOL. LOPO runs per cancer, so a
+          model trained on COAD never predicts CHOL.
+        </p>
+      </div>
+      <div class="step win reveal">
+        <div class="step-kicker">Step 8 · Make C-index interpretable</div>
+        <h3>"Does WSI add value beyond age and sex?"</h3>
+        <p>
+          Each output row now carries a clinical-only baseline (Cox on age + gender), a WSI +
+          clinical combined model, a per-SD hazard ratio with 95% CI, and a median-split log-rank
+          p-value, answering the marginal-value question in one table.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout reveal">
+      <strong>Where it landed.</strong> ACC and LIHC are clear wins (C-index 0.84 / 0.69);
+      CESC, COAD and STAD show small-but-real signal; READ is a cautionary tale where WSI is
+      actively anti-predictive; and the smallest cohorts honestly return "we can't tell."
+      <a href="results.html">See the full results →</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

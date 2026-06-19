@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metrics · WSI Pan-Cancer</title>
+<meta name="description" content="The evaluation metrics explained — confusion matrix, accuracy, precision, recall, F1, plus AUC and the survival C-index — and when each one matters.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · metrics</div>
+    <h1>Metrics, explained</h1>
+    <p class="subtitle">
+      A model is only as trustworthy as the number you judge it by. This page explains the
+      evaluation metrics used across the project, starting from the confusion matrix, through
+      accuracy, precision, recall and F1, up to AUC and the survival C-index, and, just as
+      importantly, <em>when each one can mislead</em>.
+    </p>
+  </section>
+
+  <!-- CONFUSION MATRIX -->
+  <section id="confusion">
+    <h2>The confusion matrix</h2>
+    <div class="concept">
+      <div class="concept-text">
+        <p>
+          Every classification metric is built from four counts: <strong>true positives (TP)</strong>
+          and <strong>true negatives (TN)</strong> (the correct calls), and <strong>false positives
+          (FP)</strong> and <strong>false negatives (FN)</strong> (the two kinds of mistake). Laid
+          out in a 2×2 <strong>confusion matrix</strong>, they're the raw material for everything
+          below.
+        </p>
+        <p>
+          The two errors are not equally costly: in a clinical setting a false negative (missing a
+          high-grade tumor) usually matters far more than a false positive. The metric you pick
+          should reflect which mistake you care about.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="../figures/models/confusion_matrix.png" alt="Confusion matrix" data-zoom>
+        <figcaption>TP / TN / FP / FN — the four counts behind every metric.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- THE METRICS -->
+  <section id="metrics">
+    <h2>Accuracy, precision, recall, F1</h2>
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="../figures/models/precision_recall.png" alt="Metrics bars and F1 harmonic mean" data-zoom>
+        <figcaption>The four scores from one matrix; F1 is the harmonic mean of precision &amp; recall.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <p>Each metric answers a different question:</p>
+        <ul>
+          <li><strong>Accuracy</strong> = (TP+TN) / everything: "what fraction did I get right?"
+            Simple, but <em>misleading on imbalanced data</em> (99% accuracy is trivial if 99% of
+            cases are negative).</li>
+          <li><strong>Precision</strong> = TP / (TP+FP): "when I say positive, how often am I
+            right?" Matters when false alarms are costly.</li>
+          <li><strong>Recall</strong> (sensitivity) = TP / (TP+FN): "of the real positives, how
+            many did I catch?" Matters when misses are costly (the clinical priority).</li>
+          <li><strong>F1</strong> = harmonic mean of precision &amp; recall: a single balanced
+            score that's only high when <em>both</em> are high, so a model can't win by acing one
+            and ignoring the other.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Metric</th><th>Formula</th><th>Answers</th><th>Watch out for</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Accuracy</strong></td><td>(TP+TN)/N</td><td>overall correctness</td><td>class imbalance</td></tr>
+          <tr><td><strong>Precision</strong></td><td>TP/(TP+FP)</td><td>trust in positive calls</td><td>ignores misses</td></tr>
+          <tr><td><strong>Recall</strong></td><td>TP/(TP+FN)</td><td>coverage of real positives</td><td>ignores false alarms</td></tr>
+          <tr><td><strong>F1</strong></td><td>2·P·R/(P+R)</td><td>balance of the two</td><td>hides which one is weak</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <strong>Why the project leans on balanced metrics.</strong> The validated tumor-grade task
+      was deliberately balanced 13:13 so accuracy is meaningful, and it's still reported alongside
+      F1 and AUC. The discarded mutation targets (e.g. BAP1, 7:29) are exactly where accuracy lies
+      and AUC/F1 tell the truth.
+    </div>
+  </section>
+
+  <!-- THRESHOLD-FREE -->
+  <section id="threshold-free">
+    <h2>Beyond a single threshold: AUC &amp; C-index</h2>
+    <p class="lead">
+      Accuracy/precision/recall all depend on where you set the decision threshold. Two metrics
+      summarize performance across <em>all</em> thresholds, and they're the project's headline
+      scores.
+    </p>
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">Classification → AUC</div>
+        <h3>Area under the ROC curve</h3>
+        <p>
+          Sweep the threshold and plot true-positive vs false-positive rate; the area underneath
+          (<strong>AUC</strong>) is the probability the model ranks a random positive above a random
+          negative. <strong>0.5 = chance, 1.0 = perfect</strong>, threshold-independent, ideal for
+          small balanced cohorts. The grade finding (AUC 0.80) is this number. More on the
+          <a href="models-classification.html#concepts">classification</a> page.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="../figures/models/roc_auc.png" alt="ROC curve and AUC" data-zoom>
+        <figcaption>AUC summarizes every threshold in one number.</figcaption>
+      </figure>
+    </div>
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="../figures/models/c_index.png" alt="Concordance index" data-zoom>
+        <figcaption>The C-index: survival's threshold-free analogue of AUC.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">Survival → C-index</div>
+        <h3>Concordance index</h3>
+        <p>
+          For survival, the analogue is the <strong>concordance index</strong>: across all
+          comparable patient pairs, how often does the model give the higher risk to the one who
+          died sooner? Again <strong>0.5 = chance</strong>, and it handles censoring. Every survival
+          result on the site is a C-index. See the <a href="models-survival.html#concepts">survival</a>
+          page and the <a href="results.html#survival">results</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methods · WSI Pan-Cancer</title>
+<meta name="description" content="Data, slide-level aggregation, classification and survival models, leakage-safe cross-validation, pooled LOPO, the permutation test, and thermal-safe design.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Methods · under the hood</div>
+    <h1>How the pipeline works</h1>
+    <p class="subtitle">
+      One consolidated, leakage-safe, thermal-safe pipeline takes pre-extracted UNI2 patch
+      embeddings through aggregation, classical classification, and per-cancer survival
+      analysis. The essentials are below; deeper rationale lives in the expandable panels.
+    </p>
+  </section>
+
+  <!-- DATA -->
+  <section id="data">
+    <h2>Data</h2>
+    <p>
+      Two embedding cohorts are supported side-by-side. The original <strong>CHOL cohort</strong>:
+      59 WSIs (39 tumor, 20 normal) across 44 participants, with 15 patients contributing
+      matched tumor + normal pairs. The expanded <strong>UNI2 cohort</strong>: 2 075 WSIs across
+      1 850 participants spanning 8 TCGA cancer projects (ACC, CESC, CHOL, COAD, ESCA, LIHC,
+      READ, STAD), of which 1 608 have valid survival data (557 events). Patch-level embeddings
+      are 1 536-dim per patch with variable patches per slide, pre-extracted with the UNI2
+      foundation model.
+    </p>
+    <figure style="max-width:780px">
+      <img src="../figures/fig1_pipeline_overview.png" alt="End-to-end WSI pipeline" data-zoom>
+      <figcaption>End-to-end WSI pipeline, from H5 patch embeddings to classification and survival outputs. Click to enlarge.</figcaption>
+    </figure>
+  </section>
+
+  <!-- AGGREGATION -->
+  <section id="aggregation">
+    <h2>Slide-level aggregation</h2>
+    <p>
+      Each variable-length patch matrix (N × 1536) is aggregated into a fixed slide vector.
+      The default "rich" aggregation concatenates six summary statistics (mean, std, P10, P25,
+      P75, P90), yielding a 9,216-dim representation. The pipeline also supports plain mean
+      aggregation (1,536-dim).
+    </p>
+    <figure style="max-width:780px">
+      <img src="../figures/fig2_aggregation_methods.png" alt="Aggregation methods taxonomy" data-zoom>
+      <figcaption>
+        Aggregation taxonomy. The shipped pipeline uses the "rich" method (mean + std +
+        P10/25/75/90) by default; the broader taxonomy documents alternatives from earlier runs.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- MODELS -->
+  <section id="models">
+    <h2>Models</h2>
+
+    <h3>Classification models</h3>
+    <p>10 laptop-friendly classifiers, single-threaded by default:</p>
+    <ul>
+      <li><strong>Linear:</strong> LogisticRegression (L1, L2), RidgeClassifier, LinearSVC</li>
+      <li><strong>Ensembles:</strong> RandomForest, ExtraTrees, GradientBoosting</li>
+      <li><strong>Other:</strong> KNN-5, LinearDiscriminantAnalysis, GaussianNB</li>
+    </ul>
+    <p>
+      Preprocessing pipeline: StandardScaler → PCA (95 % variance retained) → classifier.
+      Preprocessing is refit inside every CV fold to prevent data leakage.
+    </p>
+
+    <h3>Survival models</h3>
+    <p>Six survival estimators evaluated side-by-side per cancer type:</p>
+    <ul>
+      <li><strong><code>Cox_AgeSex</code></strong>: Cox baseline on age + gender (clinical-only floor)</li>
+      <li><strong><code>Cox_WSI_plus_Clin</code></strong>: Coxnet on WSI PCs ⊕ clinical covariates (combined model)</li>
+      <li><strong><code>CoxnetLasso</code></strong> / <strong><code>CoxnetElasticNet</code></strong>: penalized Cox on WSI PCs</li>
+      <li><strong><code>RSF</code></strong>: Random Survival Forest (n_estimators = 100, max_depth = 5)</li>
+      <li><strong><code>GradientBoostSurv</code></strong>: gradient-boosted survival</li>
+    </ul>
+    <p>
+      All survival models are fit on PCA-reduced features (95 % variance retained, refit on each
+      cancer subset). Clinical covariates are standardized separately so they sit on the same
+      scale as the PCs in the combined model.
+    </p>
+  </section>
+
+  <!-- CROSS-VALIDATION -->
+  <section id="cv">
+    <h2>Cross-validation</h2>
+    <p>
+      <strong>Classification</strong> auto-selects a leakage-safe split: when any participant
+      has multiple slides (e.g. matched tumor + normal), <code>GroupKFold</code> or
+      <code>LeaveOneGroupOut</code> is used with participant ID as the group. No participant ever
+      appears in both train and test.
+    </p>
+    <p>
+      <strong>Survival</strong> uses pooled <em>leave-one-participant-out</em>. For each
+      participant, the model is fit on the other N − 1 and used to predict that patient's risk.
+      All N held-out risks are pooled into a single vector and one
+      <code>concordance_index_censored</code> is computed. To get a 95 % CI on that single number,
+      1 000 bootstrap resamples of the (event, time, risk) triples are taken; the 2.5 / 97.5
+      percentiles are reported as <code>ci_low</code> / <code>ci_high</code>.
+    </p>
+
+    <details class="accordion" id="why-lopo">
+      <summary>Why pooled LOPO instead of 5-fold for survival</summary>
+      <div class="acc-body">
+        <p>
+          Per-fold C-index requires comparable event pairs in the test set. With 55 patients and
+          27 events split 5 ways, some folds had ≈ 5 events, too few to estimate C-index stably.
+          The previous <code>RSF = 0.71 ± 0.22</code> on CHOL reflected fold-split noise, not
+          predictive power. Pooled LOPO uses every event exactly once across the test set and
+          yields a single stable C-index whose uncertainty is honestly captured by the bootstrap
+          CI.
+        </p>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>What each survival output row also records</summary>
+      <div class="acc-body">
+        <ul>
+          <li>
+            a per-SD <strong>hazard ratio</strong> with 95 % CI and p-value (univariate lifelines
+            Cox on the standardized risk score); quantifies the strength of the continuous
+            association;
+          </li>
+          <li>
+            a <strong>log-rank p-value</strong> from a median split of the predicted risk; the
+            standard "does this model stratify into clinically distinct groups?" test;
+          </li>
+          <li>
+            <code>feature_mode</code> and <code>clinical_covariates_used</code> columns so the
+            WSI-only, clinical-only, and combined rows are directly comparable.
+          </li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- PERMUTATION TEST -->
+  <section id="permutation">
+    <h2>Permutation test (classification)</h2>
+    <p>
+      To check whether AUC = 0.80 was a small-N fluke, the grade labels were randomly shuffled
+      200 times. For each shuffle, the same LOO-cross-validated KNN-5 pipeline was run end-to-end
+      and the resulting AUC recorded. The empirical p-value is the fraction of null AUCs ≥ the
+      baseline, with a +1 / N+1 correction (Phipson &amp; Smyth 2010).
+    </p>
+  </section>
+
+  <!-- THERMAL -->
+  <section id="thermal">
+    <h2>Thermal-safe design</h2>
+    <p>
+      The pipeline was built around a laptop that overheats under sustained load. H5 files are
+      loaded one at a time with explicit cooldown pauses; models default to
+      <code>n_jobs = 1</code>; progress is checkpointed every 5 files so a crash never costs more
+      than ~30 seconds of work.
+    </p>
+    <ul>
+      <li>H5 files loaded one at a time with explicit cooldown pauses</li>
+      <li><code>n_jobs = 1</code> by default for all parallelisable models</li>
+      <li>Checkpointing every 5 files (recover with <code>--resume</code>)</li>
+      <li><code>--cool</code> mode for extended pauses between files</li>
+    </ul>
+  </section>
+
+  <!-- REPRODUCIBILITY -->
+  <section id="reproduce">
+    <h2>Reproducibility</h2>
+    <p>
+      The site is the readable front-end; everything below regenerates the underlying results.
+      All commands are in <code>wsi_survival_pipeline.py</code>.
+    </p>
+
+    <details class="accordion">
+      <summary>Setup</summary>
+      <div class="acc-body">
+<pre>pip install numpy pandas scipy scikit-learn h5py matplotlib seaborn
+pip install scikit-survival lifelines</pre>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>Reproduce the validated grade finding (CHOL)</summary>
+      <div class="acc-body">
+<pre>python wsi_survival_pipeline.py \
+    --aggregated-csv results_lightweight/aggregated_embeddings.csv \
+    --output-dir results_v2 \
+    --target grade --no-survival</pre>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>Pan-cancer survival run (UNI2 cohort)</summary>
+      <div class="acc-body">
+<pre># Full pipeline: aggregation + classification + per-cancer survival LOPO.
+# Auto-discovers both embedding directories.
+python wsi_survival_pipeline.py \
+    --clinical-data ./CLINICAL_FULL.parquet \
+    --output-dir ./results_v2 --cool
+
+# Resume after a crash (uses the on-disk checkpoint)
+python wsi_survival_pipeline.py --resume --output-dir ./results_v2
+
+# Survival-only re-run from a cached aggregated CSV
+python wsi_survival_pipeline.py \
+    --aggregated-csv ./results_v2/aggregated_embeddings.csv \
+    --output-dir ./results_v2 --no-classification</pre>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>Other classification targets</summary>
+      <div class="acc-body">
+<pre># Tumor vs normal (saturates at AUC = 1.0 on UNI2; useful only as a sanity check)
+python wsi_survival_pipeline.py --target tumor_normal
+
+# Mutation status (binary mut vs wt; needs ./TCGA_data/MUTATIONS_FULL.parquet)
+python wsi_survival_pipeline.py --target mutation:BAP1
+
+# Survival-quartile classification (short Q1 vs long Q4; classification, not survival CV)
+python wsi_survival_pipeline.py --target survival_quartile</pre>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>Thermal &amp; runtime controls</summary>
+      <div class="acc-body">
+<pre>--cool                      # aggressive cooldowns (2 s between H5 files)
+--n-jobs 1                  # single-threaded (default; raise for hotter hardware)
+--bootstrap-iters 1000      # iterations for survival CI (lower = faster, wider CI)
+--min-survival-patients 30  # drop cancers smaller than this from survival
+--resume                    # pick up aggregation from .aggregation_checkpoint.json</pre>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>Repository layout</summary>
+      <div class="acc-body">
+<pre>JiaYin_WSI_Analysis/
+├── wsi_survival_pipeline.py        # consolidated pipeline (classification + survival)
+├── generate_workflow_figures.py    # generates figures/*.png
+├── index.html …                    # this multi-page site
+├── assets/                         # shared styles.css + app.js
+├── figures/                        # pipeline diagrams + KM curves
+├── results_lightweight/            # historical CHOL results + permutation null
+├── results/                        # historical 16-model survival output (pre-LOPO)
+├── results_v2/                     # new pipeline output (per-cancer LOPO)
+├── requirements.txt
+└── README.md</pre>
+      </div>
+    </details>
+
+    <div class="callout">
+      <strong>Data not included.</strong> The TCGA embeddings (<code>embeddings/*.h5</code> and
+      <code>TCGA UNI2 embeddings/*.h5</code>), clinical parquet, and multi-omics parquets exceed
+      GitHub's file-size limits and are gitignored. The pipeline regenerates all results from
+      scratch given those inputs.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

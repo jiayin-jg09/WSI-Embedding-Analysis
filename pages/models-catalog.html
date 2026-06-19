@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Association catalog · WSI Pan-Cancer</title>
+<meta name="description" content="A coded catalog of the strongest within-cancer associations between UNI2 embedding dimensions and molecular features, with cross-model robustness across six foundation models, survival links, and biological modules.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · catalog</div>
+    <h1>The association catalog</h1>
+    <p class="subtitle">
+      The <a href="models-omics.html">Biology</a> page shows <em>that</em> UNI2 embeddings encode
+      molecular state. This page is the detailed registry: the single strongest
+      dimension&ndash;molecule links, each given a stable code, scored for how well they reproduce
+      across six independent foundation models, and checked against patient survival. It is meant
+      to be browsed and sorted, not read top to bottom.
+    </p>
+  </section>
+
+  <!-- HOW TO READ -->
+  <section id="read">
+    <h2>How to read an entry</h2>
+    <p>
+      Every row is one association between a single UNI2 embedding dimension and a single
+      molecular feature. Each is given a stable code so it can be referred to later:
+    </p>
+    <div class="callout" style="font-family:monospace; font-size:1.05em">
+      U2 &middot; D0953 &middot; EXPR &middot; 7A3F2<br>
+      <span style="font-size:0.82em; font-family:inherit; color:var(--muted)">
+      model (UNI2) &nbsp;·&nbsp; dimension 953 &nbsp;·&nbsp; data type (expression)
+      &nbsp;·&nbsp; association ID</span>
+    </div>
+    <p>The columns:</p>
+    <ul>
+      <li><strong>rho (within-cancer)</strong> &mdash; the Spearman correlation between the
+        dimension and the feature <em>after cancer type is removed</em>. A positive value means
+        the dimension rises with the feature; the sign and magnitude both matter.</li>
+      <li><strong>models</strong> &mdash; the cross-model robustness count, from 0 to 6 (see
+        below). Higher means more foundation models independently rank this feature among their
+        best-encoded, so the link is unlikely to be a quirk of UNI2.</li>
+      <li><strong>surv HR/SD</strong> &mdash; the hazard ratio per standard deviation of that
+        dimension, from a Cox model stratified by cancer type. Values above 1 mean higher values
+        of the dimension go with worse survival; <code>*</code> marks p&nbsp;&lt;&nbsp;0.05.</li>
+    </ul>
+  </section>
+
+  <!-- HOW BUILT -->
+  <section id="built">
+    <h2>How the catalog is built</h2>
+    <p>
+      <strong>Within-cancer strength.</strong> Pooling all cancers together inflates correlations,
+      because a dimension that merely separates colon from liver tumors will line up with anything
+      else that differs between them. So every association is measured <em>within</em> cancer type
+      first, and only the genuinely strongest survive into the catalog.
+    </p>
+    <p>
+      <strong>Balanced across data types.</strong> Immune-signature correlations are numerically
+      much larger than, say, copy-number ones, so a simple global top-1000 would be almost entirely
+      immune signatures. Instead the catalog keeps the strongest ~200 links from <em>each</em> data
+      type (expression, copy-number, immune fractions, immune signatures, proteins), so every
+      modality is represented.
+    </p>
+    <p>
+      <strong>Cross-model robustness.</strong> The mentor's lab computed the same dimension&ndash;
+      omics correlations for <strong>six</strong> pathology foundation models (CTransPath,
+      Kaiko-S8, Lunit-DINO, PathDINO, SP22M and UNI2). Their embedding dimensions are not
+      comparable one to one, so we compare at the feature level: for each model we ask whether the
+      feature is among that model's top 20% best-encoded, and count how many of the six agree. A
+      link confirmed by all six is reading biology that is a property of the tissue rather than of
+      any single network.
+    </p>
+    <p>
+      <strong>Survival.</strong> For each dimension in the catalog we fit a Cox proportional-hazards
+      model on overall survival, stratified by cancer type, and record the hazard ratio and
+      significance. This flags which appearance-encoded signals also track patient outcome.
+    </p>
+    <p>
+      <strong>Hub dimensions.</strong> The links are also grouped by dimension to surface the
+      &ldquo;hub&rdquo; dimensions that carry many strong associations at once. Mutations are
+      catalogued separately, because within cancer type the embedding barely tracks specific
+      mutations.
+    </p>
+  </section>
+
+  <!-- HONESTY -->
+  <section id="limits">
+    <h2>What is and isn't new here</h2>
+    <p>
+      To be clear about novelty: the <em>raw</em> dimension&ndash;omics correlations are not a new
+      discovery. The lab already holds them, pooled, for all six models including UNI2. What this
+      catalog contributes is the curation on top: the de-confounded within-cancer view, the
+      cross-model agreement score, the survival link, the program labels, and stable codes to refer
+      to individual associations. These are also correlations, not proof that the model &ldquo;reads
+      a gene&rdquo;; a dimension may track a gene because both follow the same tissue morphology.
+    </p>
+  </section>
+
+  <!-- CATALOG:START (generated by uni2_catalog.py) -->
+  <section id="catalog">
+    <h2>A coded catalog of the strongest associations</h2>
+    <p>
+      A balanced selection of the strongest within-cancer links (~40 per data type) is
+      shown here; click any column header to sort. Of the full 1000-row catalog,
+      <strong>697</strong> links are robust in at least 5 of 6 foundation models and
+      <strong>187</strong> involve a survival-associated dimension. The complete catalog,
+      the module tables and the mutation list are written to
+      <code>results_v2/dim_omics/</code>. Column meanings are explained above.
+    </p>
+    <table class="sortable">
+      <thead><tr><th>Code</th><th>Dim</th><th>Omic</th>
+        <th class="num">rho (within-cancer)</th><th class="num">models</th>
+        <th class="num">surv HR/SD</th></tr></thead>
+      <tbody>
+<tr><td><code>U2-D0205-SIG-85E9C</code></td><td>dim_205</td><td>SIG</td><td class="num" data-sort="0.558">-0.558</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.061">1.06</td></tr>
+<tr><td><code>U2-D1467-SIG-F1DF9</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.558">-0.558</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D1256-SIG-19491</code></td><td>dim_1256</td><td>SIG</td><td class="num" data-sort="0.556">-0.556</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D1256-SIG-D367E</code></td><td>dim_1256</td><td>SIG</td><td class="num" data-sort="0.554">+0.554</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0843-SIG-77D3B</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.550">-0.550</td><td class="num" data-sort="1">1/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0843-SIG-08AB1</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.550">+0.550</td><td class="num" data-sort="1">1/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0184-SIG-55F4C</code></td><td>dim_184</td><td>SIG</td><td class="num" data-sort="0.547">+0.547</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.144">1.14*</td></tr>
+<tr><td><code>U2-D1467-SIG-BF127</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.546">-0.546</td><td class="num" data-sort="2">2/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D1467-SIG-85E9C</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.546">-0.546</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D1467-SIG-F896A</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.544">-0.544</td><td class="num" data-sort="2">2/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D0410-RPPA-64C61</code></td><td>dim_410</td><td>RPPA</td><td class="num" data-sort="0.543">+0.543</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.027">1.03</td></tr>
+<tr><td><code>U2-D1467-SIG-2682A</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.543">-0.543</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D0583-SIG-19491</code></td><td>dim_583</td><td>SIG</td><td class="num" data-sort="0.541">-0.541</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.054">1.05</td></tr>
+<tr><td><code>U2-D1467-SIG-54BFB</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.540">+0.540</td><td class="num" data-sort="4">4/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D0184-SIG-D367E</code></td><td>dim_184</td><td>SIG</td><td class="num" data-sort="0.539">+0.539</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.144">1.14*</td></tr>
+<tr><td><code>U2-D0843-SIG-F8C61</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.539">-0.539</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D1256-SIG-D9E76</code></td><td>dim_1256</td><td>SIG</td><td class="num" data-sort="0.538">-0.538</td><td class="num" data-sort="2">2/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0583-SIG-33053</code></td><td>dim_583</td><td>SIG</td><td class="num" data-sort="0.538">-0.538</td><td class="num" data-sort="4">4/6</td><td class="num" data-sort="1.054">1.05</td></tr>
+<tr><td><code>U2-D0843-SIG-19491</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.538">-0.538</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0843-SIG-55F4C</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.537">+0.537</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0843-SIG-66E84</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.536">-0.536</td><td class="num" data-sort="1">1/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0205-SIG-F8C61</code></td><td>dim_205</td><td>SIG</td><td class="num" data-sort="0.536">+0.536</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.061">1.06</td></tr>
+<tr><td><code>U2-D0184-SIG-3F197</code></td><td>dim_184</td><td>SIG</td><td class="num" data-sort="0.535">+0.535</td><td class="num" data-sort="5">5/6</td><td class="num" data-sort="1.144">1.14*</td></tr>
+<tr><td><code>U2-D0843-SIG-85E9C</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.534">+0.534</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0843-SIG-48558</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.534">+0.534</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D1467-SIG-3F197</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.533">-0.533</td><td class="num" data-sort="5">5/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D0843-SIG-33053</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.533">-0.533</td><td class="num" data-sort="4">4/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0205-SIG-3F197</code></td><td>dim_205</td><td>SIG</td><td class="num" data-sort="0.531">-0.531</td><td class="num" data-sort="5">5/6</td><td class="num" data-sort="1.061">1.06</td></tr>
+<tr><td><code>U2-D0843-SIG-2682A</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.531">+0.531</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D1256-SIG-55F4C</code></td><td>dim_1256</td><td>SIG</td><td class="num" data-sort="0.531">+0.531</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D1467-SIG-33053</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.531">+0.531</td><td class="num" data-sort="4">4/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D0843-SIG-ABD2A</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.529">+0.529</td><td class="num" data-sort="2">2/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0843-SIG-D9E76</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.529">-0.529</td><td class="num" data-sort="2">2/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0583-SIG-77D3B</code></td><td>dim_583</td><td>SIG</td><td class="num" data-sort="0.529">-0.529</td><td class="num" data-sort="1">1/6</td><td class="num" data-sort="1.054">1.05</td></tr>
+<tr><td><code>U2-D0205-SIG-F1DF9</code></td><td>dim_205</td><td>SIG</td><td class="num" data-sort="0.528">-0.528</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.061">1.06</td></tr>
+<tr><td><code>U2-D0843-SIG-5014D</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.528">-0.528</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0843-SIG-BF127</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.528">+0.528</td><td class="num" data-sort="2">2/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D1467-SIG-98C37</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.527">-0.527</td><td class="num" data-sort="5">5/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D1467-SIG-E0C50</code></td><td>dim_1467</td><td>SIG</td><td class="num" data-sort="0.527">-0.527</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D0583-SIG-3F197</code></td><td>dim_583</td><td>SIG</td><td class="num" data-sort="0.526">+0.526</td><td class="num" data-sort="5">5/6</td><td class="num" data-sort="1.054">1.05</td></tr>
+<tr><td><code>U2-D0843-SIG-F1DF9</code></td><td>dim_843</td><td>SIG</td><td class="num" data-sort="0.526">+0.526</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D1015-RPPA-64C61</code></td><td>dim_1015</td><td>RPPA</td><td class="num" data-sort="0.508">-0.508</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.045">1.04</td></tr>
+<tr><td><code>U2-D0409-RPPA-64C61</code></td><td>dim_409</td><td>RPPA</td><td class="num" data-sort="0.501">-0.501</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.078">1.08</td></tr>
+<tr><td><code>U2-D1243-RPPA-64C61</code></td><td>dim_1243</td><td>RPPA</td><td class="num" data-sort="0.500">-0.500</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.978">0.98</td></tr>
+<tr><td><code>U2-D1256-RPPA-64C61</code></td><td>dim_1256</td><td>RPPA</td><td class="num" data-sort="0.496">+0.496</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0860-RPPA-64C61</code></td><td>dim_860</td><td>RPPA</td><td class="num" data-sort="0.481">-0.481</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.928">0.93</td></tr>
+<tr><td><code>U2-D1404-RPPA-64C61</code></td><td>dim_1404</td><td>RPPA</td><td class="num" data-sort="0.476">+0.476</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.868">0.87*</td></tr>
+<tr><td><code>U2-D1399-RPPA-64C61</code></td><td>dim_1399</td><td>RPPA</td><td class="num" data-sort="0.471">+0.471</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.066">1.07</td></tr>
+<tr><td><code>U2-D0843-RPPA-64C61</code></td><td>dim_843</td><td>RPPA</td><td class="num" data-sort="0.470">+0.470</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.032">1.03</td></tr>
+<tr><td><code>U2-D0829-RPPA-64C61</code></td><td>dim_829</td><td>RPPA</td><td class="num" data-sort="0.466">+0.466</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.003">1.00</td></tr>
+<tr><td><code>U2-D0984-RPPA-64C61</code></td><td>dim_984</td><td>RPPA</td><td class="num" data-sort="0.462">-0.462</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.91">0.91</td></tr>
+<tr><td><code>U2-D0373-RPPA-64C61</code></td><td>dim_373</td><td>RPPA</td><td class="num" data-sort="0.461">-0.461</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.039">1.04</td></tr>
+<tr><td><code>U2-D0955-RPPA-64C61</code></td><td>dim_955</td><td>RPPA</td><td class="num" data-sort="0.454">-0.454</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.995">0.99</td></tr>
+<tr><td><code>U2-D0691-RPPA-64C61</code></td><td>dim_691</td><td>RPPA</td><td class="num" data-sort="0.453">+0.453</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.902">0.90*</td></tr>
+<tr><td><code>U2-D0637-RPPA-64C61</code></td><td>dim_637</td><td>RPPA</td><td class="num" data-sort="0.450">+0.450</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.104">1.10</td></tr>
+<tr><td><code>U2-D0633-RPPA-64C61</code></td><td>dim_633</td><td>RPPA</td><td class="num" data-sort="0.450">+0.450</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.067">1.07</td></tr>
+<tr><td><code>U2-D1467-RPPA-64C61</code></td><td>dim_1467</td><td>RPPA</td><td class="num" data-sort="0.443">-0.443</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.092">1.09</td></tr>
+<tr><td><code>U2-D0091-RPPA-64C61</code></td><td>dim_91</td><td>RPPA</td><td class="num" data-sort="0.438">+0.438</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.963">0.96</td></tr>
+<tr><td><code>U2-D0751-RPPA-64C61</code></td><td>dim_751</td><td>RPPA</td><td class="num" data-sort="0.436">-0.436</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D1334-RPPA-64C61</code></td><td>dim_1334</td><td>RPPA</td><td class="num" data-sort="0.435">-0.435</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.883">0.88*</td></tr>
+<tr><td><code>U2-D1274-RPPA-64C61</code></td><td>dim_1274</td><td>RPPA</td><td class="num" data-sort="0.431">-0.431</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.049">1.05</td></tr>
+<tr><td><code>U2-D0832-RPPA-64C61</code></td><td>dim_832</td><td>RPPA</td><td class="num" data-sort="0.429">+0.429</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.935">0.94</td></tr>
+<tr><td><code>U2-D1105-RPPA-64C61</code></td><td>dim_1105</td><td>RPPA</td><td class="num" data-sort="0.429">+0.429</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.001">1.00</td></tr>
+<tr><td><code>U2-D0907-RPPA-64C61</code></td><td>dim_907</td><td>RPPA</td><td class="num" data-sort="0.428">-0.428</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.106">1.11*</td></tr>
+<tr><td><code>U2-D1235-RPPA-64C61</code></td><td>dim_1235</td><td>RPPA</td><td class="num" data-sort="0.425">+0.425</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.843">0.84*</td></tr>
+<tr><td><code>U2-D0261-RPPA-64C61</code></td><td>dim_261</td><td>RPPA</td><td class="num" data-sort="0.425">-0.425</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.026">1.03</td></tr>
+<tr><td><code>U2-D1035-RPPA-64C61</code></td><td>dim_1035</td><td>RPPA</td><td class="num" data-sort="0.424">-0.424</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.001">1.00</td></tr>
+<tr><td><code>U2-D0713-RPPA-64C61</code></td><td>dim_713</td><td>RPPA</td><td class="num" data-sort="0.423">+0.423</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.975">0.97</td></tr>
+<tr><td><code>U2-D0507-RPPA-64C61</code></td><td>dim_507</td><td>RPPA</td><td class="num" data-sort="0.422">+0.422</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.047">1.05</td></tr>
+<tr><td><code>U2-D0987-RPPA-64C61</code></td><td>dim_987</td><td>RPPA</td><td class="num" data-sort="0.420">+0.420</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.939">0.94</td></tr>
+<tr><td><code>U2-D0125-RPPA-64C61</code></td><td>dim_125</td><td>RPPA</td><td class="num" data-sort="0.420">+0.420</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.006">1.01</td></tr>
+<tr><td><code>U2-D0799-RPPA-64C61</code></td><td>dim_799</td><td>RPPA</td><td class="num" data-sort="0.416">+0.416</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.962">0.96</td></tr>
+<tr><td><code>U2-D1185-RPPA-64C61</code></td><td>dim_1185</td><td>RPPA</td><td class="num" data-sort="0.413">-0.413</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.138">1.14*</td></tr>
+<tr><td><code>U2-D0582-RPPA-64C61</code></td><td>dim_582</td><td>RPPA</td><td class="num" data-sort="0.409">+0.409</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.048">1.05</td></tr>
+<tr><td><code>U2-D0500-RPPA-64C61</code></td><td>dim_500</td><td>RPPA</td><td class="num" data-sort="0.409">+0.409</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.015">1.01</td></tr>
+<tr><td><code>U2-D0384-RPPA-64C61</code></td><td>dim_384</td><td>RPPA</td><td class="num" data-sort="0.408">+0.408</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D0323-RPPA-64C61</code></td><td>dim_323</td><td>RPPA</td><td class="num" data-sort="0.408">+0.408</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.917">0.92</td></tr>
+<tr><td><code>U2-D0991-RPPA-64C61</code></td><td>dim_991</td><td>RPPA</td><td class="num" data-sort="0.406">+0.406</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.894">0.89*</td></tr>
+<tr><td><code>U2-D0520-RPPA-64C61</code></td><td>dim_520</td><td>RPPA</td><td class="num" data-sort="0.405">+0.405</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.984">0.98</td></tr>
+<tr><td><code>U2-D0406-RPPA-64C61</code></td><td>dim_406</td><td>RPPA</td><td class="num" data-sort="0.404">+0.404</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.012">1.01</td></tr>
+<tr><td><code>U2-D0957-EXPR-E385E</code></td><td>dim_957</td><td>EXPR</td><td class="num" data-sort="0.273">+0.273</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.939">0.94</td></tr>
+<tr><td><code>U2-D0953-EXPR-D2623</code></td><td>dim_953</td><td>EXPR</td><td class="num" data-sort="0.269">+0.269</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D1256-EXPR-5D1CE</code></td><td>dim_1256</td><td>EXPR</td><td class="num" data-sort="0.269">+0.269</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0630-EXPR-623FC</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.267">+0.267</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0054-EXPR-6D388</code></td><td>dim_54</td><td>EXPR</td><td class="num" data-sort="0.267">-0.267</td><td class="num" data-sort="5">5/6</td><td class="num" data-sort="1.288">1.29*</td></tr>
+<tr><td><code>U2-D0630-EXPR-70CAC</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.261">+0.261</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0897-EXPR-45DC6</code></td><td>dim_897</td><td>EXPR</td><td class="num" data-sort="0.260">+0.260</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.091">1.09</td></tr>
+<tr><td><code>U2-D1256-EXPR-5090D</code></td><td>dim_1256</td><td>EXPR</td><td class="num" data-sort="0.259">-0.259</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0194-EXPR-5090D</code></td><td>dim_194</td><td>EXPR</td><td class="num" data-sort="0.255">+0.255</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.981">0.98</td></tr>
+<tr><td><code>U2-D0630-EXPR-A2D45</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.254">+0.254</td><td class="num" data-sort="3">3/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0953-EXPR-98BA1</code></td><td>dim_953</td><td>EXPR</td><td class="num" data-sort="0.253">+0.253</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D1256-EXPR-257FD</code></td><td>dim_1256</td><td>EXPR</td><td class="num" data-sort="0.253">+0.253</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0956-IMM-F5855</code></td><td>dim_956</td><td>IMM</td><td class="num" data-sort="0.252">+0.252</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.001">1.00</td></tr>
+<tr><td><code>U2-D0630-EXPR-F01D5</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.252">+0.252</td><td class="num" data-sort="1">1/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D1250-CNV-39CA0</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.251">+0.251</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1365-EXPR-EFE2F</code></td><td>dim_1365</td><td>EXPR</td><td class="num" data-sort="0.249">-0.249</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.043">1.04</td></tr>
+<tr><td><code>U2-D1256-EXPR-45DC6</code></td><td>dim_1256</td><td>EXPR</td><td class="num" data-sort="0.249">+0.249</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0953-IMM-F5855</code></td><td>dim_953</td><td>IMM</td><td class="num" data-sort="0.248">-0.248</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D1250-CNV-9E3E2</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-332D2</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-78EC7</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-2ABAC</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-8FE66</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-46F56</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-7B87E</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-1181E</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-4461F</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D0054-EXPR-FE114</code></td><td>dim_54</td><td>EXPR</td><td class="num" data-sort="0.248">-0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.288">1.29*</td></tr>
+<tr><td><code>U2-D1250-CNV-FA62D</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-C2879</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1256-EXPR-2FDBD</code></td><td>dim_1256</td><td>EXPR</td><td class="num" data-sort="0.248">+0.248</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D1250-CNV-01874</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.247">+0.247</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-7B1FC</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.247">+0.247</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-ABE15</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.247">+0.247</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-A163E</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.247">+0.247</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-C16E3</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.247">+0.247</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D0054-EXPR-5CDF2</code></td><td>dim_54</td><td>EXPR</td><td class="num" data-sort="0.247">-0.247</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.288">1.29*</td></tr>
+<tr><td><code>U2-D1250-CNV-7F2D9</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-72169</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-2689A</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-6C0EA</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-BAB0C</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D0953-EXPR-2A300</code></td><td>dim_953</td><td>EXPR</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D0630-EXPR-6FC4D</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0104-EXPR-171E5</code></td><td>dim_104</td><td>EXPR</td><td class="num" data-sort="0.246">-0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.036">1.04</td></tr>
+<tr><td><code>U2-D0952-EXPR-53C49</code></td><td>dim_952</td><td>EXPR</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.03">1.03</td></tr>
+<tr><td><code>U2-D1250-CNV-659C1</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-1074C</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-E8546</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-33C99</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-B14DF</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-FF78E</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.246">+0.246</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-5BB3E</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-47CF2</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-D7BA4</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-4DB01</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-7F102</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-1DCAB</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-7550E</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-A9E3A</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-5D7DC</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-19AD4</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-6F1AC</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D1250-CNV-7BF76</code></td><td>dim_1250</td><td>CNV</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D0630-EXPR-98BA1</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.245">+0.245</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0194-EXPR-F01D5</code></td><td>dim_194</td><td>EXPR</td><td class="num" data-sort="0.243">+0.243</td><td class="num" data-sort="1">1/6</td><td class="num" data-sort="0.981">0.98</td></tr>
+<tr><td><code>U2-D0104-EXPR-8E9FA</code></td><td>dim_104</td><td>EXPR</td><td class="num" data-sort="0.243">-0.243</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.036">1.04</td></tr>
+<tr><td><code>U2-D1272-EXPR-71C47</code></td><td>dim_1272</td><td>EXPR</td><td class="num" data-sort="0.243">-0.243</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D0153-EXPR-0EECF</code></td><td>dim_153</td><td>EXPR</td><td class="num" data-sort="0.243">+0.243</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.228">1.23*</td></tr>
+<tr><td><code>U2-D0630-EXPR-B538B</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.242">+0.242</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0953-EXPR-179FA</code></td><td>dim_953</td><td>EXPR</td><td class="num" data-sort="0.241">+0.241</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D1321-EXPR-8C277</code></td><td>dim_1321</td><td>EXPR</td><td class="num" data-sort="0.240">+0.240</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.891">0.89</td></tr>
+<tr><td><code>U2-D0630-EXPR-E684B</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.240">+0.240</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0104-EXPR-08FEF</code></td><td>dim_104</td><td>EXPR</td><td class="num" data-sort="0.240">-0.240</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.036">1.04</td></tr>
+<tr><td><code>U2-D1256-EXPR-71C47</code></td><td>dim_1256</td><td>EXPR</td><td class="num" data-sort="0.240">+0.240</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D0630-EXPR-524FF</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.240">+0.240</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D1256-IMM-F5855</code></td><td>dim_1256</td><td>IMM</td><td class="num" data-sort="0.240">+0.240</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.986">0.99</td></tr>
+<tr><td><code>U2-D1086-EXPR-34387</code></td><td>dim_1086</td><td>EXPR</td><td class="num" data-sort="0.239">+0.239</td><td class="num" data-sort="1">1/6</td><td class="num" data-sort="0.896">0.90*</td></tr>
+<tr><td><code>U2-D0953-EXPR-79A08</code></td><td>dim_953</td><td>EXPR</td><td class="num" data-sort="0.239">+0.239</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D0953-EXPR-9EB2B</code></td><td>dim_953</td><td>EXPR</td><td class="num" data-sort="0.239">+0.239</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D0104-EXPR-5688E</code></td><td>dim_104</td><td>EXPR</td><td class="num" data-sort="0.239">-0.239</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.036">1.04</td></tr>
+<tr><td><code>U2-D0630-EXPR-220FF</code></td><td>dim_630</td><td>EXPR</td><td class="num" data-sort="0.239">-0.239</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="0.889">0.89*</td></tr>
+<tr><td><code>U2-D0054-EXPR-6AB8D</code></td><td>dim_54</td><td>EXPR</td><td class="num" data-sort="0.239">-0.239</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.288">1.29*</td></tr>
+<tr><td><code>U2-D0917-IMM-F5855</code></td><td>dim_917</td><td>IMM</td><td class="num" data-sort="0.229">+0.229</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.196">1.20*</td></tr>
+<tr><td><code>U2-D1272-IMM-F5855</code></td><td>dim_1272</td><td>IMM</td><td class="num" data-sort="0.224">-0.224</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.918">0.92</td></tr>
+<tr><td><code>U2-D0760-IMM-F5855</code></td><td>dim_760</td><td>IMM</td><td class="num" data-sort="0.222">+0.222</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.962">0.96</td></tr>
+<tr><td><code>U2-D1015-IMM-28B47</code></td><td>dim_1015</td><td>IMM</td><td class="num" data-sort="0.213">+0.213</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.045">1.04</td></tr>
+<tr><td><code>U2-D0857-IMM-28B47</code></td><td>dim_857</td><td>IMM</td><td class="num" data-sort="0.212">+0.212</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.858">0.86*</td></tr>
+<tr><td><code>U2-D0083-IMM-F5855</code></td><td>dim_83</td><td>IMM</td><td class="num" data-sort="0.212">-0.212</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.273">1.27*</td></tr>
+<tr><td><code>U2-D0502-IMM-218AD</code></td><td>dim_502</td><td>IMM</td><td class="num" data-sort="0.204">-0.204</td><td class="num" data-sort="0">0/6</td><td class="num" data-sort="1.082">1.08</td></tr>
+<tr><td><code>U2-D0732-IMM-F5855</code></td><td>dim_732</td><td>IMM</td><td class="num" data-sort="0.200">+0.200</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.921">0.92</td></tr>
+<tr><td><code>U2-D1250-IMM-F5855</code></td><td>dim_1250</td><td>IMM</td><td class="num" data-sort="0.199">-0.199</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.937">0.94</td></tr>
+<tr><td><code>U2-D0787-IMM-F5855</code></td><td>dim_787</td><td>IMM</td><td class="num" data-sort="0.197">-0.197</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.012">1.01</td></tr>
+<tr><td><code>U2-D1271-IMM-F5855</code></td><td>dim_1271</td><td>IMM</td><td class="num" data-sort="0.197">-0.197</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.973">0.97</td></tr>
+<tr><td><code>U2-D0175-IMM-F5855</code></td><td>dim_175</td><td>IMM</td><td class="num" data-sort="0.196">-0.196</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.099">1.10*</td></tr>
+<tr><td><code>U2-D0507-IMM-F5855</code></td><td>dim_507</td><td>IMM</td><td class="num" data-sort="0.195">+0.195</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.047">1.05</td></tr>
+<tr><td><code>U2-D1334-IMM-28B47</code></td><td>dim_1334</td><td>IMM</td><td class="num" data-sort="0.195">+0.195</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.883">0.88*</td></tr>
+<tr><td><code>U2-D0597-IMM-28B47</code></td><td>dim_597</td><td>IMM</td><td class="num" data-sort="0.194">-0.194</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.047">1.05</td></tr>
+<tr><td><code>U2-D0385-IMM-F5855</code></td><td>dim_385</td><td>IMM</td><td class="num" data-sort="0.192">+0.192</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.019">1.02</td></tr>
+<tr><td><code>U2-D0907-IMM-28B47</code></td><td>dim_907</td><td>IMM</td><td class="num" data-sort="0.192">+0.192</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.106">1.11*</td></tr>
+<tr><td><code>U2-D0919-IMM-F5855</code></td><td>dim_919</td><td>IMM</td><td class="num" data-sort="0.191">-0.191</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.005">1.00</td></tr>
+<tr><td><code>U2-D0155-IMM-F5855</code></td><td>dim_155</td><td>IMM</td><td class="num" data-sort="0.191">+0.191</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.925">0.93</td></tr>
+<tr><td><code>U2-D0374-IMM-F5855</code></td><td>dim_374</td><td>IMM</td><td class="num" data-sort="0.190">+0.190</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.878">0.88*</td></tr>
+<tr><td><code>U2-D0889-IMM-F5855</code></td><td>dim_889</td><td>IMM</td><td class="num" data-sort="0.189">-0.189</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.916">0.92*</td></tr>
+<tr><td><code>U2-D0601-IMM-28B47</code></td><td>dim_601</td><td>IMM</td><td class="num" data-sort="0.189">+0.189</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.968">0.97</td></tr>
+<tr><td><code>U2-D1341-IMM-28B47</code></td><td>dim_1341</td><td>IMM</td><td class="num" data-sort="0.188">-0.188</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.214">1.21*</td></tr>
+<tr><td><code>U2-D0758-IMM-F5855</code></td><td>dim_758</td><td>IMM</td><td class="num" data-sort="0.186">-0.186</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.806">0.81*</td></tr>
+<tr><td><code>U2-D1415-IMM-F5855</code></td><td>dim_1415</td><td>IMM</td><td class="num" data-sort="0.186">+0.186</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.998">1.00</td></tr>
+<tr><td><code>U2-D0251-IMM-F5855</code></td><td>dim_251</td><td>IMM</td><td class="num" data-sort="0.186">-0.186</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.901">0.90*</td></tr>
+<tr><td><code>U2-D0635-IMM-28B47</code></td><td>dim_635</td><td>IMM</td><td class="num" data-sort="0.186">-0.186</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.953">0.95</td></tr>
+<tr><td><code>U2-D1384-IMM-F5855</code></td><td>dim_1384</td><td>IMM</td><td class="num" data-sort="0.185">-0.185</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.943">0.94</td></tr>
+<tr><td><code>U2-D1429-IMM-F5855</code></td><td>dim_1429</td><td>IMM</td><td class="num" data-sort="0.184">-0.184</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.993">0.99</td></tr>
+<tr><td><code>U2-D0654-IMM-F5855</code></td><td>dim_654</td><td>IMM</td><td class="num" data-sort="0.184">+0.184</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.954">0.95</td></tr>
+<tr><td><code>U2-D0593-IMM-F5855</code></td><td>dim_593</td><td>IMM</td><td class="num" data-sort="0.183">+0.183</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.021">1.02</td></tr>
+<tr><td><code>U2-D1056-IMM-F5855</code></td><td>dim_1056</td><td>IMM</td><td class="num" data-sort="0.183">+0.183</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.933">0.93</td></tr>
+<tr><td><code>U2-D0324-IMM-28B47</code></td><td>dim_324</td><td>IMM</td><td class="num" data-sort="0.183">-0.183</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.969">0.97</td></tr>
+<tr><td><code>U2-D1071-IMM-F5855</code></td><td>dim_1071</td><td>IMM</td><td class="num" data-sort="0.181">+0.181</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.993">0.99</td></tr>
+<tr><td><code>U2-D0560-IMM-F5855</code></td><td>dim_560</td><td>IMM</td><td class="num" data-sort="0.180">+0.180</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="1.059">1.06</td></tr>
+<tr><td><code>U2-D1246-IMM-F5855</code></td><td>dim_1246</td><td>IMM</td><td class="num" data-sort="0.180">-0.180</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.965">0.96</td></tr>
+<tr><td><code>U2-D0055-IMM-F5855</code></td><td>dim_55</td><td>IMM</td><td class="num" data-sort="0.180">-0.180</td><td class="num" data-sort="6">6/6</td><td class="num" data-sort="0.971">0.97</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="color:var(--accent)">Hub dimensions</h3>
+    <p>The dimensions that turn up most often in the catalog, i.e. that carry many strong
+       associations at once.</p>
+    <div class="fig-grid">
+      <div>
+        <table class="sortable"><thead><tr><th>Dim</th><th class="num">links</th></tr></thead>
+        <tbody>
+<tr><td>dim_1250</td><td class="num">201</td></tr>
+<tr><td>dim_1256</td><td class="num">37</td></tr>
+<tr><td>dim_630</td><td class="num">35</td></tr>
+<tr><td>dim_1467</td><td class="num">31</td></tr>
+<tr><td>dim_843</td><td class="num">29</td></tr>
+<tr><td>dim_205</td><td class="num">28</td></tr>
+<tr><td>dim_583</td><td class="num">23</td></tr>
+<tr><td>dim_953</td><td class="num">21</td></tr>
+<tr><td>dim_184</td><td class="num">17</td></tr>
+<tr><td>dim_104</td><td class="num">16</td></tr>
+<tr><td>dim_54</td><td class="num">11</td></tr>
+<tr><td>dim_1289</td><td class="num">11</td></tr>
+        </tbody></table></div>
+    </div>
+
+    <h3 style="color:var(--accent)">Mutation links (separate &mdash; expectedly weak)</h3>
+    <p>Within cancer type the embedding barely tracks specific mutations; the strongest few are
+       listed for completeness and mostly are not robust across models.</p>
+    <table class="sortable">
+      <thead><tr><th>Code</th><th>Dim</th><th class="num">rho</th><th class="num">models</th></tr></thead>
+      <tbody>
+<tr><td><code>U2-D0054-MUT-45593</code></td><td>dim_54</td><td class="num" data-sort="0.181">+0.181</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D1019-MUT-45593</code></td><td>dim_1019</td><td class="num" data-sort="0.160">-0.160</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D1249-MUT-45593</code></td><td>dim_1249</td><td class="num" data-sort="0.151">-0.151</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0832-MUT-45593</code></td><td>dim_832</td><td class="num" data-sort="0.149">+0.149</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0544-MUT-45593</code></td><td>dim_544</td><td class="num" data-sort="0.142">+0.142</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0437-MUT-45593</code></td><td>dim_437</td><td class="num" data-sort="0.142">+0.142</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D1265-MUT-45593</code></td><td>dim_1265</td><td class="num" data-sort="0.139">+0.139</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D1277-MUT-45593</code></td><td>dim_1277</td><td class="num" data-sort="0.139">+0.139</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0712-MUT-45593</code></td><td>dim_712</td><td class="num" data-sort="0.135">-0.135</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D1078-MUT-45593</code></td><td>dim_1078</td><td class="num" data-sort="0.134">+0.134</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0860-MUT-45593</code></td><td>dim_860</td><td class="num" data-sort="0.133">-0.133</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0850-MUT-45593</code></td><td>dim_850</td><td class="num" data-sort="0.129">-0.129</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D1222-MUT-45593</code></td><td>dim_1222</td><td class="num" data-sort="0.129">+0.129</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0365-MUT-45593</code></td><td>dim_365</td><td class="num" data-sort="0.127">-0.127</td><td class="num">6/6</td></tr>
+<tr><td><code>U2-D0679-MUT-45593</code></td><td>dim_679</td><td class="num" data-sort="0.126">+0.126</td><td class="num">6/6</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <!-- CATALOG:END -->
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clustering &amp; Statistics · WSI Pan-Cancer</title>
+<meta name="description" content="How unsupervised clustering (K-means, hierarchical) and the statistics layer (silhouette, chi-square, log-rank, FDR correction, permutation tests, bootstrap CIs) are used in the project.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · clustering &amp; statistics</div>
+    <h1>Clustering &amp; statistics, explained</h1>
+    <p class="subtitle">
+      Beyond supervised prediction, the project asks an unsupervised question: do the slide
+      embeddings <em>naturally</em> group, and do those groups mean anything? That takes two
+      layers: <strong>clustering</strong> to find the groups, and <strong>statistics</strong>
+      to test whether they're real and what they relate to. This page explains both, with the
+      project's actual clustering results.
+    </p>
+    <div class="card-grid">
+      <a class="nav-card" href="#clustering"><div class="kicker">Layer 1</div><h3>Clustering</h3><p>K-means, hierarchical, and choosing k with the silhouette score.</p><span class="arrow">Jump down →</span></a>
+      <a class="nav-card" href="#statistics"><div class="kicker">Layer 2</div><h3>Statistics</h3><p>Chi-square, log-rank, multiple testing &amp; FDR, permutation, bootstrap.</p><span class="arrow">Jump down →</span></a>
+      <a class="nav-card" href="#finding"><div class="kicker">Result</div><h3>What we found</h3><p>Clusters track tissue type, but not survival.</p><span class="arrow">Jump down →</span></a>
+    </div>
+  </section>
+
+  <!-- CLUSTERING -->
+  <section id="clustering">
+    <h2>Clustering: finding structure without labels</h2>
+    <p class="lead">
+      Clustering is <strong>unsupervised</strong>: it groups slides by similarity in embedding
+      space without ever seeing a label. If tumors of different biology look different to the
+      foundation model, they should fall into different clusters on their own.
+    </p>
+
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">K-means</div>
+        <h3>Partition into k groups by nearest center</h3>
+        <p>
+          K-means picks <em>k</em> cluster centers and assigns each slide to the nearest one,
+          then iterates until the centers settle. It's fast and intuitive, but you have to choose
+          <em>k</em> up front. Here it's run on the PCA-reduced embeddings (after the same
+          StandardScaler → PCA step the models use).
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="../figures/models/clustering_scatter.png" alt="K-means clusters on CHOL embeddings" data-zoom>
+        <figcaption>K-means (k=2) on the CHOL mean embeddings: two clean groups (✕ = centers).</figcaption>
+      </figure>
+    </div>
+
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="../figures/models/clustering_silhouette.png" alt="Silhouette score vs number of clusters" data-zoom>
+        <figcaption>Silhouette peaks at k=2 for most aggregations → two natural groups.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">How many clusters? The silhouette score</div>
+        <h3>Letting the data choose k</h3>
+        <p>
+          The <strong>silhouette score</strong> measures how tight and well-separated clusters are
+          (−1 to +1; higher is better). Computing it for a range of <em>k</em> and taking the peak
+          gives a data-driven number of clusters. Across the project's aggregation methods the peak
+          is almost always <strong>k = 2</strong>: the embeddings split most naturally into two
+          groups.
+        </p>
+        <p>
+          <strong>Hierarchical clustering</strong> is also run as a cross-check: instead of fixing
+          k, it builds a tree by repeatedly merging the closest groups, which you can cut at any
+          level. The two methods agree closely here.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATISTICS -->
+  <section id="statistics">
+    <h2>Statistics: are the groups meaningful?</h2>
+    <p class="lead">
+      Finding clusters is easy; proving they <em>mean</em> something requires statistical tests,
+      and being honest about testing many things at once.
+    </p>
+
+    <h3 style="color:var(--accent)">Association tests</h3>
+    <ul>
+      <li><strong>Chi-square test</strong>: do the clusters line up with a known label (e.g.
+        tumor vs normal)? A small p-value means the cluster split and the label are not
+        independent.</li>
+      <li><strong>Log-rank test</strong>: do the clusters have different <em>survival</em>? This
+        is the same test used for the Kaplan–Meier curves elsewhere on the site (see the
+        <a href="models-survival.html#concepts">survival</a> page).</li>
+    </ul>
+
+    <h3 style="color:var(--accent)">Multiple testing &amp; FDR</h3>
+    <div class="concept">
+      <div class="concept-text">
+        <p>
+          The project tested ~44 aggregation methods × 2 clustering methods × 2 tests, well over
+          a hundred p-values. At a 0.05 threshold, you'd expect several "significant" hits
+          <em>by chance alone</em>. The fix is <strong>False Discovery Rate (FDR) correction</strong>
+          (Benjamini–Hochberg), which adjusts every p-value to control the share of false positives
+          among the hits you report, so the few you keep are far more likely to be genuine.
+        </p>
+        <p>
+          The result is striking and honest: after FDR, clusters are <strong>significantly
+          associated with tissue type</strong> in nearly every method, but with
+          <strong>survival in none</strong>: the unsupervised structure reflects what the tissue
+          <em>is</em>, not how the patient fared.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="../figures/models/fdr_significance.png" alt="FDR-corrected significance summary" data-zoom>
+        <figcaption>After FDR: 41/43 methods significant for tissue type, 0/43 for survival.</figcaption>
+      </figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Permutation test &amp; bootstrap CI</h3>
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="../results_lightweight/permutation_null_distribution.png" alt="Permutation null distribution" data-zoom>
+        <figcaption>The grade-classification permutation null: the real AUC sits far outside it.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <p>
+          Two more tools used throughout the project:
+        </p>
+        <ul>
+          <li><strong>Permutation test</strong>: shuffle the labels many times and re-run the whole
+            pipeline to build a "null" distribution of scores you'd get by chance. The empirical
+            p-value is how often chance beats the real score. This is how the AUC = 0.80 grade
+            finding was validated (0/200 shuffles beat it → p = 0.005).</li>
+          <li><strong>Bootstrap confidence interval</strong>: resample the data with replacement
+            1,000× and recompute the metric to get an honest 95% CI, a range the true value
+            plausibly falls in. This is how every survival C-index on the site carries its
+            uncertainty.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINDING -->
+  <section id="finding">
+    <h2>What the clustering told us</h2>
+    <div class="callout">
+      <strong>Unsupervised structure ≠ prognosis.</strong> The embeddings cluster cleanly and
+      those clusters strongly reflect <em>tissue type</em> (tumor vs normal), confirmed across
+      almost every aggregation method after FDR correction. But the same clusters do <em>not</em>
+      separate patients by survival. That's a useful, honest negative: prognostic signal has to be
+      pulled out by <em>supervised</em> survival models (see <a href="results.html#survival">Results</a>);
+      it doesn't fall out of unsupervised clustering for free.
+    </div>
+    <p>
+      Full per-method clustering numbers (optimal k, silhouette, variance explained) live in
+      <code>results/clustering_results/all_results.json</code>; the FDR-corrected test table is
+      <code>results/statistical_tests/fdr_corrected_results.csv</code>.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

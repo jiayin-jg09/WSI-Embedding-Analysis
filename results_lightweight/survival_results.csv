@@ -1,0 +1,5 @@
+model,c_index_mean,c_index_std,time_sec
+RSF,0.7141,0.22,0.54
+GradientBoostSurv,0.5967,0.1961,0.18
+CoxnetElasticNet,0.5504,0.0862,0.02
+CoxnetLasso,0.5375,0.0805,0.01

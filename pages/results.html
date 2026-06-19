@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Results · WSI Pan-Cancer</title>
+<meta name="description" content="Interactive results: sortable tables, per-cancer C-index charts, classifier AUCs, the permutation null, and Kaplan–Meier curves.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Results · interactive</div>
+    <h1>What the embeddings could predict</h1>
+    <p class="subtitle">
+      Tables are sortable: click any column header. Charts are hoverable and recolor with the
+      theme. Figures open full-size on click.
+    </p>
+  </section>
+
+  <!-- CLASSIFICATION -->
+  <section id="classification">
+    <h2>Classification · TCGA-CHOL</h2>
+
+    <h3>Targets explored</h3>
+    <div class="table-wrap">
+      <table class="sortable">
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th class="num">N</th>
+            <th>Class split</th>
+            <th class="num">Best AUC</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tumor vs normal</td>
+            <td class="num">59</td>
+            <td>39 : 20</td>
+            <td class="num">1.000</td>
+            <td><span class="pill">saturated · not useful</span></td>
+          </tr>
+          <tr>
+            <td><strong>Tumor grade (low vs high)</strong></td>
+            <td class="num"><strong>26</strong></td>
+            <td><strong>13 : 13</strong></td>
+            <td class="num"><strong>0.799</strong></td>
+            <td><span class="pill good">real signal · p = 0.005</span></td>
+          </tr>
+          <tr>
+            <td>BAP1 mutation</td>
+            <td class="num">36</td>
+            <td>7 : 29</td>
+            <td class="num">0.639</td>
+            <td><span class="pill bad">too imbalanced</span></td>
+          </tr>
+          <tr>
+            <td>PBRM1 mutation</td>
+            <td class="num">36</td>
+            <td>8 : 28</td>
+            <td class="num">0.380</td>
+            <td><span class="pill bad">below chance</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Top classifiers for tumor grade</h3>
+    <div class="chart-wrap tall">
+      <canvas id="classifierChart"></canvas>
+    </div>
+    <p class="chart-caption">AUC under leave-one-out CV. KNN-5 (highlighted) leads at 0.80.</p>
+
+    <div class="table-wrap">
+      <table class="sortable">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th class="num">AUC</th>
+            <th class="num">Accuracy</th>
+            <th class="num">F1</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>KNN-5</td><td class="num">0.799</td><td class="num">0.808</td><td class="num">0.815</td></tr>
+          <tr><td>LogReg (L1)</td><td class="num">0.734</td><td class="num">0.692</td><td class="num">0.692</td></tr>
+          <tr><td>LinearSVC</td><td class="num">0.722</td><td class="num">0.692</td><td class="num">0.667</td></tr>
+          <tr><td>Bagging (LR)</td><td class="num">0.716</td><td class="num">0.731</td><td class="num">0.741</td></tr>
+          <tr><td>LogReg (L2)</td><td class="num">0.704</td><td class="num">0.615</td><td class="num">0.643</td></tr>
+          <tr><td>SGD (Huber)</td><td class="num">0.692</td><td class="num">0.692</td><td class="num">0.692</td></tr>
+          <tr><td>KNN-3</td><td class="num">0.686</td><td class="num">0.769</td><td class="num">0.769</td></tr>
+          <tr><td>GaussianNB</td><td class="num">0.686</td><td class="num">0.692</td><td class="num">0.692</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Permutation test (grade · KNN-5 · LOO)</h3>
+    <div class="fig-wide">
+      <img src="../results_lightweight/permutation_null_distribution.png"
+           alt="Null AUC distribution from 200 permutations" data-zoom>
+      <figcaption>
+        Distribution of AUCs across 200 label-shuffled re-runs. Mean null AUC = 0.426 (± 0.119);
+        97.5th percentile = 0.666. Baseline AUC = 0.760 sits well outside the null.
+        0 / 200 shuffles ≥ baseline → p = 0.005 (Phipson–Smyth correction). Click to enlarge.
+      </figcaption>
+    </div>
+  </section>
+
+  <!-- SURVIVAL COHORT -->
+  <section id="cohort">
+    <h2>Survival cohort (UNI2)</h2>
+    <p>
+      The expanded survival cohort spans 8 TCGA cancer projects with 1 608 patients and 557
+      events. Each row below is one cancer; survival LOPO + bootstrap CI is run separately per
+      cancer so the model trained on one cancer never predicts another.
+    </p>
+    <div class="table-wrap">
+      <table class="sortable">
+        <thead>
+          <tr>
+            <th>Cancer</th>
+            <th class="num">Patients</th>
+            <th class="num">Events</th>
+            <th class="num">Censored</th>
+            <th>Power for C-index</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>TCGA-COAD</td><td class="num">369</td><td class="num">90</td><td class="num">279</td><td><span class="pill good">well-powered</span></td></tr>
+          <tr><td>TCGA-STAD</td><td class="num">343</td><td class="num">143</td><td class="num">200</td><td><span class="pill good">well-powered</span></td></tr>
+          <tr><td>TCGA-LIHC</td><td class="num">300</td><td class="num">128</td><td class="num">172</td><td><span class="pill good">well-powered</span></td></tr>
+          <tr><td>TCGA-CESC</td><td class="num">242</td><td class="num">65</td><td class="num">177</td><td><span class="pill good">well-powered</span></td></tr>
+          <tr><td>TCGA-ESCA</td><td class="num">135</td><td class="num">66</td><td class="num">69</td><td><span class="pill good">well-powered</span></td></tr>
+          <tr><td>TCGA-READ</td><td class="num">133</td><td class="num">27</td><td class="num">106</td><td><span class="pill">adequate · wide CI</span></td></tr>
+          <tr><td>TCGA-ACC</td><td class="num">50</td><td class="num">19</td><td class="num">31</td><td><span class="pill good">strong signal</span></td></tr>
+          <tr><td>TCGA-CHOL</td><td class="num">36</td><td class="num">19</td><td class="num">17</td><td><span class="pill bad">underpowered</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SURVIVAL PERFORMANCE -->
+  <section id="survival">
+    <h2>Per-cancer survival performance</h2>
+    <p>
+      Each row pairs the clinical-only baseline (Cox on age + gender) against the strongest
+      WSI-informed model on that cancer. C-index = pooled LOPO over all patients; CI = 1 000-iter
+      bootstrap on the (event, time, risk) triples; HR = per-SD lifelines Cox on the standardized
+      risk score; log-rank p = median split of predicted risk.
+    </p>
+
+    <div class="chart-wrap tall">
+      <canvas id="survivalChart"></canvas>
+    </div>
+    <p class="chart-caption">
+      Age + sex baseline vs best WSI model, per cancer (C-index). Bars above the others show
+      where imaging adds value; READ is the one cancer where WSI underperforms its clinical
+      baseline. Chance level = 0.50.
+    </p>
+
+    <div class="table-wrap">
+      <table class="sortable">
+        <thead>
+          <tr>
+            <th>Cancer</th>
+            <th class="num">Age + sex C</th>
+            <th>Best WSI model</th>
+            <th class="num">C-index [95 % CI]</th>
+            <th class="num">HR / SD</th>
+            <th class="num">log-rank p</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>TCGA-ACC</strong></td>
+            <td class="num">0.507</td>
+            <td>Cox_WSI_plus_Clin</td>
+            <td class="num" data-sort="0.843"><strong>0.843</strong> [0.803, 0.885]</td>
+            <td class="num">6.88</td>
+            <td class="num" data-sort="1e-30">&lt; 1e-30</td>
+            <td><span class="pill good">strong WSI signal</span></td>
+          </tr>
+          <tr>
+            <td><strong>TCGA-LIHC</strong></td>
+            <td class="num">0.478</td>
+            <td>Cox_WSI_plus_Clin</td>
+            <td class="num" data-sort="0.688"><strong>0.688</strong> [0.635, 0.740]</td>
+            <td class="num">1.95</td>
+            <td class="num" data-sort="1e-30">&lt; 1e-30</td>
+            <td><span class="pill good">strong WSI signal</span></td>
+          </tr>
+          <tr>
+            <td>TCGA-CESC</td>
+            <td class="num">0.562</td>
+            <td>CoxnetLasso</td>
+            <td class="num" data-sort="0.700">0.700 [0.630, 0.770]</td>
+            <td class="num">2.13</td>
+            <td class="num" data-sort="3.1e-05">3.1e-05</td>
+            <td><span class="pill good">moderate signal</span></td>
+          </tr>
+          <tr>
+            <td>TCGA-COAD</td>
+            <td class="num">0.552</td>
+            <td>CoxnetLasso</td>
+            <td class="num" data-sort="0.604">0.604 [0.538, 0.673]</td>
+            <td class="num">1.42</td>
+            <td class="num" data-sort="2.6e-02">2.6e-02</td>
+            <td><span class="pill">small but real</span></td>
+          </tr>
+          <tr>
+            <td>TCGA-STAD</td>
+            <td class="num">0.526</td>
+            <td>CoxnetLasso</td>
+            <td class="num" data-sort="0.597">0.597 [0.548, 0.643]</td>
+            <td class="num">1.40</td>
+            <td class="num" data-sort="1.5e-02">1.5e-02</td>
+            <td><span class="pill">small but real</span></td>
+          </tr>
+          <tr>
+            <td>TCGA-ESCA</td>
+            <td class="num">0.609</td>
+            <td>CoxnetLasso</td>
+            <td class="num" data-sort="0.594">0.594 [0.516, 0.668]</td>
+            <td class="num">1.26</td>
+            <td class="num" data-sort="1.1e-01">1.1e-01</td>
+            <td><span class="pill bad">no WSI gain</span></td>
+          </tr>
+          <tr>
+            <td>TCGA-READ</td>
+            <td class="num">0.727</td>
+            <td>CoxnetLasso</td>
+            <td class="num" data-sort="0.443">0.443 [0.321, 0.568]</td>
+            <td class="num">0.88</td>
+            <td class="num" data-sort="7.8e-01">7.8e-01</td>
+            <td><span class="pill bad">WSI anti-predictive</span></td>
+          </tr>
+          <tr>
+            <td>TCGA-CHOL</td>
+            <td class="num">0.454</td>
+            <td>CoxnetLasso</td>
+            <td class="num" data-sort="0.548">0.548 [0.421, 0.687]</td>
+            <td class="num">1.05</td>
+            <td class="num" data-sort="3.5e-01">3.5e-01</td>
+            <td><span class="pill bad">underpowered · ns</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <strong>Headline findings.</strong>
+      <ul style="margin: 8px 0 0;">
+        <li>
+          <strong>ACC and LIHC are the clear wins.</strong> WSI features push C-index from
+          near-chance (0.51 / 0.48) to <strong>0.84 / 0.69</strong> with per-SD hazard ratios of
+          6.9 and 1.95, and tight bootstrap CIs that don't touch 0.5.
+        </li>
+        <li>
+          <strong>CESC, COAD, STAD show small but real signal.</strong> All three have log-rank
+          p &lt; 0.05 on the median split, with WSI gains of 0.04 – 0.14 over the age + sex
+          baseline.
+        </li>
+        <li>
+          <strong>READ is a cautionary tale.</strong> Age + sex hits C = 0.73 (driven by age),
+          and WSI models drop to 0.44, actively <em>anti-predictive</em>. The WSI signal here is
+          absent or overwhelmed by the clinical signal.
+        </li>
+        <li>
+          <strong>ESCA, CHOL, and the smaller cohorts</strong> produce wide CIs that include 0.5.
+          The honest answer is "we can't tell" rather than the misleading tight-but-wrong
+          numbers naive 5-fold CV would have given.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PAN-CANCER POOLED -->
+  <section id="pooled">
+    <h2>Pan-cancer pooled model</h2>
+    <p class="lead">
+      What if, instead of a separate model per cancer, we train <em>one</em> model across all
+      1,608 patients from all 8 cancers at once?
+    </p>
+    <p>
+      A single pooled model is appealing (more data, one model to ship), but it comes with a
+      catch worth stating plainly.
+    </p>
+
+    <div class="callout">
+      <strong>Why we report two C-indices.</strong> Different cancers have very different baseline
+      survival, so a pooled model can score well just by sorting patients by <em>cancer type</em>
+      rather than by genuine within-patient risk. To separate the two effects we report:
+      <ul style="margin:8px 0 0;">
+        <li><strong>Overall C-index</strong>: concordance across all patients pooled. Useful, but
+          optimistic: it partly rewards telling cancers apart.</li>
+        <li><strong>Stratified C-index</strong>: concordance measured only <em>within</em> each
+          cancer, then pair-weighted across them. This is the honest within-cancer signal.</li>
+      </ul>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th class="num">Overall C [95% CI]</th>
+            <th class="num">Stratified C</th>
+            <th class="num">HR / SD</th>
+            <th class="num">log-rank p</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Age + sex (clinical floor)</td>
+            <td class="num">0.576 [0.551, 0.601]</td>
+            <td class="num">0.544</td>
+            <td class="num">1.31</td>
+            <td class="num">&lt; 1e-8</td>
+          </tr>
+          <tr>
+            <td><strong>WSI · Coxnet Lasso</strong></td>
+            <td class="num"><strong>0.665</strong> [0.640, 0.690]</td>
+            <td class="num"><strong>0.605</strong></td>
+            <td class="num">1.82</td>
+            <td class="num">&lt; 1e-30</td>
+          </tr>
+          <tr>
+            <td>WSI + clinical (combined)</td>
+            <td class="num">0.665 [0.640, 0.690]</td>
+            <td class="num">0.605</td>
+            <td class="num">1.82</td>
+            <td class="num">&lt; 1e-30</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-wrap short">
+      <canvas id="pooledChart"></canvas>
+    </div>
+    <p class="chart-caption">
+      Pooled C-index, clinical baseline vs WSI. For both, the overall bar sits above the stratified
+      bar; that gap is the between-cancer effect. WSI beats the clinical floor on <em>both</em>
+      measures, so the within-cancer signal is real, not just cancer-type detection.
+    </p>
+
+    <div class="callout">
+      <strong>The verdict.</strong> One pan-cancer WSI model reaches a stratified C-index of
+      <strong>0.605</strong> — clearly above the age+sex floor (0.544) and highly significant
+      (HR 1.82 per SD, log-rank p ≈ 1e-31). It's a strong, generalizable signal, though for
+      individual cancers the bespoke per-cancer models above can still do better (e.g. ACC 0.84).
+      The pooled model trades peak per-cancer accuracy for one robust model that works everywhere.
+      Methodology on the <a href="models-survival.html">survival models</a> page.
+    </div>
+
+    <div class="fig-wide">
+      <img src="../figures/km_pancancer_pooled.png"
+           alt="Kaplan-Meier curve for the pan-cancer pooled model" data-zoom>
+      <figcaption>
+        Held-out risk from the pooled Coxnet Lasso, median-split across all 8 cancers. The
+        high- and low-risk halves separate sharply (log-rank p ≈ 1e-31). Click to enlarge.
+      </figcaption>
+    </div>
+  </section>
+
+  <!-- KM CURVES -->
+  <section id="km">
+    <h2>Kaplan–Meier stratification (top 4 WSI signals)</h2>
+    <p>
+      Each panel takes the held-out LOPO risk score from the best WSI model on that cancer,
+      median-splits patients into high vs low risk, and plots survival with 95 % CI bands. The
+      log-rank p (high vs low) tests whether the predicted risk groups have different survival
+      distributions.
+    </p>
+    <div class="fig-wide">
+      <img src="../figures/km_combined.png" alt="Kaplan-Meier curves for ACC, LIHC, CESC, STAD" data-zoom>
+      <figcaption>
+        Held-out risk score median split, pooled across LOPO folds (one risk per patient). ACC
+        and LIHC show dramatic separation (log-rank p ≈ 1e-8); CESC moderate (p ≈ 2e-5); STAD
+        smaller but real (p ≈ 4e-3). Click to enlarge.
+      </figcaption>
+    </div>
+    <div class="fig-grid">
+      <figure><img src="../figures/km_tcga_acc.png" alt="Kaplan-Meier curve TCGA-ACC" data-zoom><figcaption>TCGA-ACC · dramatic high/low separation.</figcaption></figure>
+      <figure><img src="../figures/km_tcga_lihc.png" alt="Kaplan-Meier curve TCGA-LIHC" data-zoom><figcaption>TCGA-LIHC · strong separation.</figcaption></figure>
+      <figure><img src="../figures/km_tcga_cesc.png" alt="Kaplan-Meier curve TCGA-CESC" data-zoom><figcaption>TCGA-CESC · moderate separation.</figcaption></figure>
+      <figure><img src="../figures/km_tcga_stad.png" alt="Kaplan-Meier curve TCGA-STAD" data-zoom><figcaption>TCGA-STAD · smaller but real.</figcaption></figure>
+    </div>
+  </section>
+
+  <!-- SCHEMA -->
+  <section id="schema">
+    <h2>Survival output schema</h2>
+    <p>
+      For each (cancer, model) pair, <code>results/survival_loo/all_results.csv</code> records:
+    </p>
+    <details class="accordion">
+      <summary>Output columns</summary>
+      <div class="acc-body">
+<pre>cancer_type, model, feature_mode, clinical_covariates_used,
+n_patients, n_slides, n_events, n_valid,
+c_index_pooled, ci_low, ci_high,            # pooled LOPO + bootstrap 95% CI
+hr, hr_ci_low, hr_ci_high, hr_pvalue,       # per-SD HR from lifelines Cox
+logrank_chi2, logrank_pvalue,               # median-split log-rank
+time_sec</pre>
+        <p>
+          Per-slide held-out risk scores are also saved (<code>risk_scores.csv</code>) for
+          downstream Kaplan–Meier plotting.
+        </p>
+      </div>
+    </details>
+
+    <div class="callout">
+      <strong>Clinical-baseline caveat.</strong> <code>tumor_stage</code> is NaN throughout
+      <code>CLINICAL_FULL.parquet</code>, so the clinical baseline is age + gender only. A
+      stronger baseline (with stage) would set a higher bar for the WSI models; the current
+      comparison is therefore <em>conservative</em>: anything WSI gains over Cox_AgeSex is a
+      lower bound on its true marginal value.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+model,time_sec,accuracy_mean,f1_mean,auc_mean
+LogReg_L2,7.75,1.0,1.0,1.0
+LogReg_L1,8.19,1.0,1.0,1.0
+RidgeClassifier,9.31,1.0,1.0,1.0
+LinearSVC,8.22,1.0,1.0,1.0
+RandomForest,11.74,0.9831,0.9873,1.0
+LDA,7.49,1.0,1.0,1.0
+ExtraTrees,11.7,1.0,1.0,1.0
+Bagging_LR,10.59,1.0,1.0,1.0
+KNN_5,9.17,0.9831,0.9873,1.0
+GaussianNB,7.06,1.0,1.0,1.0
+KNN_3,7.18,1.0,1.0,1.0
+SGD_huber,7.97,0.9831,0.987,0.9872
+GradientBoosting,9.62,0.9661,0.9744,0.959

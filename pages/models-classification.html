@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classification models · WSI Pan-Cancer</title>
+<meta name="description" content="The classification models explained in detail: KNN, logistic regression, Ridge, linear SVM, random forests, extra trees, gradient boosting, LDA and naive Bayes, plus decision boundaries, regularization, ROC/AUC and PCA.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="eyebrow">Models · classification</div>
+    <h1>Classification models, explained</h1>
+    <p class="subtitle">
+      Classification asks: given a slide's features, which category is it: high vs low tumor
+      grade, tumor vs normal, mutated vs wild-type? The project runs ten laptop-friendly
+      classifiers side by side. This page explains how each draws its decision, plus the shared
+      ideas: decision boundaries, regularization, ROC/AUC, and the PCA step they all share.
+    </p>
+    <div class="card-grid">
+      <a class="nav-card" href="#concepts"><div class="kicker">First</div><h3>The concepts</h3><p>Decision boundaries, regularization, ROC/AUC, PCA.</p><span class="arrow">Jump down →</span></a>
+      <a class="nav-card" href="#models"><div class="kicker">Then</div><h3>The models</h3><p>KNN, LogReg, Ridge, SVM, forests, boosting, LDA, NB.</p><span class="arrow">Jump down →</span></a>
+      <a class="nav-card" href="results.html#classification"><div class="kicker">In action</div><h3>The results</h3><p>AUCs on the validated tumor-grade task.</p><span class="arrow">See results →</span></a>
+    </div>
+  </section>
+
+  <!-- CONCEPTS -->
+  <section id="concepts">
+    <h2>The building blocks</h2>
+
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">Decision boundary</div>
+        <h3>What "a classifier" really produces</h3>
+        <p>
+          Every classifier carves feature space into regions and assigns a class to each. The
+          line (or curved surface) between regions is the <strong>decision boundary</strong>. The
+          plots on this page show that boundary on a simple 2-feature toy set so you can <em>see</em>
+          how each model "thinks": linear models draw straight lines, while neighbour- and
+          tree-based models draw wiggly ones. Real slides live in thousands of dimensions, but the intuition
+          carries over.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="../figures/models/knn.png" alt="Example decision boundary" data-zoom>
+        <figcaption>A decision boundary separating two classes in 2-D.</figcaption>
+      </figure>
+    </div>
+
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="../figures/models/regularization_l1_l2.png" alt="L1 vs L2 regularization paths" data-zoom>
+        <figcaption>L1 zeroes coefficients out; L2 shrinks them smoothly.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">Regularization (L1 vs L2)</div>
+        <h3>Keeping models from memorizing noise</h3>
+        <p>
+          With 9,216 features and as few as 26 slides, a model can fit the training data perfectly
+          and learn nothing real. <strong>Regularization</strong> penalizes large coefficients to
+          keep the model simple. <strong>L1 (Lasso)</strong> pushes many weights to exactly zero
+          (feature selection); <strong>L2 (Ridge)</strong> shrinks them all smoothly. Logistic
+          regression is run in both flavours, and the same idea drives Ridge and the SVM's margin.
+        </p>
+      </div>
+    </div>
+
+    <div class="concept">
+      <div class="concept-text">
+        <div class="concept-kicker">ROC &amp; AUC</div>
+        <h3>The score we report</h3>
+        <p>
+          Most classifiers output a probability, not just a label. Sweeping the decision threshold
+          traces an <strong>ROC curve</strong> (true-positive vs false-positive rate). The
+          <strong>area under it (AUC)</strong> summarizes performance in one number:
+          <strong>0.5 is chance</strong>, 1.0 is perfect, and it's threshold-independent — ideal
+          for small, balanced cohorts. The validated grade finding (AUC = 0.80) is exactly this.
+        </p>
+      </div>
+      <figure class="concept-figure">
+        <img src="../figures/models/roc_auc.png" alt="ROC curve and AUC" data-zoom>
+        <figcaption>AUC = area under the ROC curve; the diagonal is chance.</figcaption>
+      </figure>
+    </div>
+
+    <div class="concept flip">
+      <figure class="concept-figure">
+        <img src="../figures/models/pca.png" alt="PCA projection and variance" data-zoom>
+        <figcaption>PCA compresses many features into a few informative axes.</figcaption>
+      </figure>
+      <div class="concept-text">
+        <div class="concept-kicker">PCA (shared preprocessing)</div>
+        <h3>From 9,216 features to a manageable few</h3>
+        <p>
+          Before any classifier, features are standardized and run through
+          <strong>Principal Component Analysis</strong>, which finds the directions of greatest
+          variation and keeps enough of them to retain 95% of the variance. This shrinks thousands
+          of correlated embedding dimensions into a compact set, fighting overfitting. Crucially,
+          PCA is <strong>refit inside each CV fold</strong> so no test information leaks into
+          training.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODELS -->
+  <section id="models">
+    <h2>The classification models</h2>
+    <p class="lead">All run single-threaded on a StandardScaler → PCA(95%) → classifier pipeline.</p>
+
+    <h3 style="color:var(--accent)">k-Nearest Neighbours (KNN)</h3>
+    <div class="model-meta"><span class="tag">type <b>instance-based</b></span><span class="tag">setting <b>k = 5</b></span><span class="tag">role <b>best on grade (AUC 0.80)</b></span></div>
+    <div class="concept">
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Ask the 5 most similar past slides how they were
+          labeled and go with the majority vote.</p>
+        <p><strong>What it does.</strong> To classify a slide, it finds the k most similar slides
+          in the training set and takes a majority vote.</p>
+        <p><strong>How it works.</strong> No training "fit" beyond storing the data; at prediction
+          time it measures distance to every training point and uses the nearest k (here 5). The
+          decision boundary (the dividing line between classes) follows the data's shape: highly
+          flexible, with no linearity assumed.</p>
+        <p><strong>Why it's here.</strong> It was the <strong>top performer on tumor grade</strong>
+          (AUC 0.80). When classes form local clusters in embedding space, "who do I look like?"
+          is a remarkably strong question.</p>
+      </div>
+      <figure class="concept-figure"><img src="../figures/models/knn.png" alt="KNN boundary" data-zoom><figcaption>Label = majority vote of the 5 nearest neighbours.</figcaption></figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Logistic Regression (L1 &amp; L2)</h3>
+    <div class="model-meta"><span class="tag">type <b>linear</b></span><span class="tag">penalty <b>L1 / L2</b></span><span class="tag">role <b>strong, interpretable</b></span></div>
+    <div class="concept flip">
+      <figure class="concept-figure"><img src="../figures/models/logreg.png" alt="Logistic regression" data-zoom><figcaption>A sigmoid turns a weighted sum into a probability → linear boundary.</figcaption></figure>
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Draw the straight line that best separates the two
+          groups, then read how far each case sits from it as a probability.</p>
+        <p><strong>What it does.</strong> Models the probability of the positive class as a
+          sigmoid of a weighted sum of features, giving a straight-line boundary.</p>
+        <p><strong>How it works.</strong> It learns one weight per feature by maximizing the
+          likelihood of the labels. A <strong>regularization penalty</strong> (a built-in
+          tax on large weights that prevents overfitting) keeps it honest: the <strong>L1</strong>
+          variant zeroes out most weights (sparse, selective), while the <strong>L2</strong>
+          variant shrinks them all smoothly (stable).</p>
+        <p><strong>Why it's here.</strong> A transparent, hard-to-beat linear baseline. L1
+          logistic regression was the runner-up on grade (AUC 0.73) and shows which features matter.</p>
+      </div>
+    </div>
+
+    <h3 style="color:var(--accent)">Ridge Classifier</h3>
+    <div class="model-meta"><span class="tag">type <b>linear</b></span><span class="tag">penalty <b>L2</b></span></div>
+    <div class="concept">
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Fit a straight-line separator but deliberately keep
+          its weights small and cautious, so a few odd slides can't swing it.</p>
+        <p><strong>What it does.</strong> A linear classifier that fits the labels as a regression
+          target with a strong L2 penalty (the smooth "shrink every weight a little"
+          form of regularization).</p>
+        <p><strong>How it works.</strong> Heavy L2 shrinkage makes it very stable when features
+          outnumber samples and are correlated, as is common with embeddings.</p>
+        <p><strong>Why it's here.</strong> A fast, robust linear option that rarely overfits, useful
+          as a sanity check against the more flexible models.</p>
+      </div>
+      <figure class="concept-figure"><img src="../figures/models/regularization_l1_l2.png" alt="Ridge L2 shrinkage" data-zoom><figcaption>Ridge (right): all coefficients shrink smoothly, none forced to 0.</figcaption></figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Linear SVM (LinearSVC)</h3>
+    <div class="model-meta"><span class="tag">type <b>linear margin</b></span><span class="tag">role <b>AUC 0.72 on grade</b></span></div>
+    <div class="concept flip">
+      <figure class="concept-figure"><img src="../figures/models/linearsvc.png" alt="Linear SVM margin" data-zoom><figcaption>The boundary that leaves the widest gap between classes.</figcaption></figure>
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Of all the straight lines that split the two groups,
+          pick the one that leaves the biggest empty buffer on either side.</p>
+        <p><strong>What it does.</strong> Finds the straight boundary that separates the classes
+          with the <strong>widest possible margin</strong> (the gap between the boundary and the
+          closest cases of each class).</p>
+        <p><strong>How it works.</strong> Only the points nearest the boundary, the "support
+          vectors" that sit right on the edge of the margin, actually shape it; maximizing the
+          margin is a built-in form of regularization that generalizes well in high dimensions.</p>
+        <p><strong>Why it's here.</strong> Max-margin linear models are a natural fit for
+          high-dimensional embeddings; it landed third on grade (AUC 0.72).</p>
+      </div>
+    </div>
+
+    <h3 style="color:var(--accent)">Random Forest</h3>
+    <div class="model-meta"><span class="tag">type <b>non-linear ensemble</b></span><span class="tag">basis <b>bagged trees</b></span></div>
+    <div class="concept">
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Poll hundreds of slightly different decision-tree
+          "experts" and average their votes, so no single quirky tree dominates.</p>
+        <p><strong>What it does.</strong> Averages many decision trees, each grown on a random
+          bootstrap sample with random feature subsets.</p>
+        <p><strong>How it works.</strong> Individual trees overfit; averaging hundreds of
+          de-correlated trees cancels their noise and yields a flexible, non-linear boundary with
+          built-in feature-importance. Because each tree sees different data and features, their
+          errors point in different directions and largely wash out.</p>
+        <p><strong>Why it's here.</strong> A strong non-linear benchmark that can catch interactions
+          linear models miss, though on tiny cohorts it can also overfit.</p>
+      </div>
+      <figure class="concept-figure"><img src="../figures/models/random_forest.png" alt="Random forest boundary" data-zoom><figcaption>Many bootstrapped trees, averaged into one boundary.</figcaption></figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Extremely Randomized Trees</h3>
+    <div class="model-meta"><span class="tag">type <b>non-linear ensemble</b></span><span class="tag">twist <b>random split thresholds</b></span></div>
+    <div class="concept flip">
+      <figure class="concept-figure"><img src="../figures/models/extratrees.png" alt="Extra trees boundary" data-zoom><figcaption>Random thresholds → smoother, faster, lower-variance forest.</figcaption></figure>
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> The same crowd-of-trees idea as a random forest, but
+          each tree splits the data at random cut-points instead of carefully chosen ones, which
+          makes the crowd even more varied.</p>
+        <p><strong>What it does.</strong> Like a random forest, but the split thresholds are chosen
+          <em>at random</em> rather than optimized.</p>
+        <p><strong>How it works.</strong> Extra randomness lowers variance further and trains
+          faster, often giving smoother boundaries: a useful counterpart to the random forest.</p>
+        <p><strong>Why it's here.</strong> A cheap, lower-variance ensemble that pairs well with the
+          random forest for comparison.</p>
+      </div>
+    </div>
+
+    <h3 style="color:var(--accent)">Gradient Boosting</h3>
+    <div class="model-meta"><span class="tag">type <b>non-linear boosting</b></span><span class="tag">basis <b>sequential trees</b></span></div>
+    <div class="concept">
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Build trees one after another, where each new tree
+          focuses on fixing the cases the previous ones got wrong, like a study group patching its
+          weak spots round by round.</p>
+        <p><strong>What it does.</strong> Builds shallow trees one at a time, each correcting the
+          mistakes of the ensemble so far.</p>
+        <p><strong>How it works.</strong> Gradient descent on the classification loss adds many
+          small tree "nudges"; with enough stages it captures subtle structure (and can overfit if
+          unchecked).</p>
+        <p><strong>Why it's here.</strong> Often the strongest tabular learner, included so the
+          comparison isn't biased toward linear methods.</p>
+      </div>
+      <figure class="concept-figure"><img src="../figures/models/gradient_boosting.png" alt="Gradient boosting boundary" data-zoom><figcaption>Trees added one-by-one to fix the previous errors.</figcaption></figure>
+    </div>
+
+    <h3 style="color:var(--accent)">Linear Discriminant Analysis (LDA)</h3>
+    <div class="model-meta"><span class="tag">type <b>generative linear</b></span></div>
+    <div class="concept flip">
+      <figure class="concept-figure"><img src="../figures/models/lda.png" alt="LDA boundary" data-zoom><figcaption>One Gaussian per class, sharing a covariance → linear boundary.</figcaption></figure>
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Picture each class as a fuzzy cloud of points of the
+          same shape, then label a new slide by whichever cloud it falls closer to.</p>
+        <p><strong>What it does.</strong> Models each class as a Gaussian blob (sharing one shape)
+          and classifies by which is more likely.</p>
+        <p><strong>How it works.</strong> The shared-covariance assumption yields a clean linear
+          boundary and a built-in dimensionality reduction; very stable on small data.</p>
+        <p><strong>Why it's here.</strong> A classic, low-variance generative baseline that
+          complements the discriminative linear models.</p>
+      </div>
+    </div>
+
+    <h3 style="color:var(--accent)">Gaussian Naive Bayes</h3>
+    <div class="model-meta"><span class="tag">type <b>generative</b></span><span class="tag">assumption <b>feature independence</b></span></div>
+    <div class="concept">
+      <div class="concept-text">
+        <p><strong>In plain terms.</strong> Score each feature on its own for how typical it looks
+          for each class, then multiply those scores together as if the features never interact.</p>
+        <p><strong>What it does.</strong> Estimates a simple Gaussian per feature per class and
+          combines them assuming features are independent.</p>
+        <p><strong>How it works.</strong> That "naive" independence assumption is rarely true, but
+          it makes the model extremely fast and surprisingly competitive on small samples.</p>
+        <p><strong>Why it's here.</strong> A near-zero-cost probabilistic baseline; it matched
+          mid-pack on grade (AUC 0.69).</p>
+      </div>
+      <figure class="concept-figure"><img src="../figures/models/gaussiannb.png" alt="Gaussian naive Bayes boundary" data-zoom><figcaption>Per-feature Gaussians, assumed independent.</figcaption></figure>
+    </div>
+
+    <div class="callout">
+      <strong>How they're compared.</strong> Each is scored by AUC under a leakage-safe split
+      (GroupKFold / leave-one-participant-out by patient), and the validated winner is confirmed
+      with a 200-shuffle permutation test. See <a href="methods.html#cv">Methods</a> and the
+      <a href="results.html#classification">Results</a>.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>
