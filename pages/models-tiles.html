@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tile galleries · WSI Pan-Cancer</title>
+<meta name="description" content="For each top dimension, a montage of the most-activating H&amp;E tiles: ten 10x10 blocks, one per top case, 100 tiles each.">
+<link rel="stylesheet" href="../assets/styles.css">
+<script>
+  try { if (localStorage.getItem("wsi-theme") === "light")
+    document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="brand">WSI · Pan-Cancer</a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="background.html">Background</a>
+      <a href="overview.html">Story</a>
+      <a href="methods.html">Methods</a>
+      <div class="nav-dropdown">
+        <button class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Models ▾</button>
+        <div class="nav-drop-menu">
+          <a href="models-survival.html">Survival</a>
+          <a href="models-classification.html">Classification</a>
+          <a href="models-aggregation.html">Aggregation</a>
+          <a href="models-clustering.html">Clustering &amp; Statistics</a>
+          <a href="models-metrics.html">Metrics</a>
+          <a href="models-omics.html">Biology</a>
+          <a href="models-catalog.html">Catalog</a>
+          <a href="models-tiles.html">Tiles</a>
+        </div>
+      </div>
+      <a href="results.html">Results</a>
+      <a href="figures.html">Figures</a>
+      <button class="theme-toggle" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+  <section class="hero">
+    <div class="eyebrow">Models · tiles</div>
+    <h1>What each dimension looks at</h1>
+    <p class="subtitle">
+      Each montage is one dimension from the <a href="models-catalog.html">catalog</a>. We take
+      the top 10 cases by the dimension's slide-level value and, from each, the 100 most-activating
+      H&amp;E tiles (20x, 256&nbsp;µm patches). The montage shows ten 10&times;10 blocks, one per
+      case, so you can read within-case consistency (across a block) and cross-case spread (across
+      blocks). Cards are labeled by code only; the molecular feature is not shown. Click to enlarge.
+    </p>
+  </section>
+  <section id="galleries">
+    <div class="gallery">
+      <figure class="gal-card"><img src="../figures/galleries/dim_1467.jpg" loading="lazy" alt="tiles for U2-D1467-SIG-F1DF9" data-zoom><figcaption><code>U2-D1467-SIG-F1DF9</code><br><span class="muted">rho -0.56 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0205.jpg" loading="lazy" alt="tiles for U2-D0205-SIG-85E9C" data-zoom><figcaption><code>U2-D0205-SIG-85E9C</code><br><span class="muted">rho -0.56 &middot; 3/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1256.jpg" loading="lazy" alt="tiles for U2-D1256-SIG-19491" data-zoom><figcaption><code>U2-D1256-SIG-19491</code><br><span class="muted">rho -0.56 &middot; 3/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0843.jpg" loading="lazy" alt="tiles for U2-D0843-SIG-08AB1" data-zoom><figcaption><code>U2-D0843-SIG-08AB1</code><br><span class="muted">rho +0.55 &middot; 1/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0184.jpg" loading="lazy" alt="tiles for U2-D0184-SIG-55F4C" data-zoom><figcaption><code>U2-D0184-SIG-55F4C</code><br><span class="muted">rho +0.55 &middot; 0/6 models &middot; surv 1.14*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0410.jpg" loading="lazy" alt="tiles for U2-D0410-RPPA-64C61" data-zoom><figcaption><code>U2-D0410-RPPA-64C61</code><br><span class="muted">rho +0.54 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0583.jpg" loading="lazy" alt="tiles for U2-D0583-SIG-19491" data-zoom><figcaption><code>U2-D0583-SIG-19491</code><br><span class="muted">rho -0.54 &middot; 3/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0829.jpg" loading="lazy" alt="tiles for U2-D0829-SIG-B546C" data-zoom><figcaption><code>U2-D0829-SIG-B546C</code><br><span class="muted">rho +0.51 &middot; 0/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1334.jpg" loading="lazy" alt="tiles for U2-D1334-SIG-D367E" data-zoom><figcaption><code>U2-D1334-SIG-D367E</code><br><span class="muted">rho -0.51 &middot; 6/6 models &middot; surv 0.88*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0746.jpg" loading="lazy" alt="tiles for U2-D0746-SIG-D367E" data-zoom><figcaption><code>U2-D0746-SIG-D367E</code><br><span class="muted">rho -0.51 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0340.jpg" loading="lazy" alt="tiles for U2-D0340-SIG-F1DF9" data-zoom><figcaption><code>U2-D0340-SIG-F1DF9</code><br><span class="muted">rho -0.51 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0409.jpg" loading="lazy" alt="tiles for U2-D0409-SIG-85E9C" data-zoom><figcaption><code>U2-D0409-SIG-85E9C</code><br><span class="muted">rho -0.51 &middot; 3/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1015.jpg" loading="lazy" alt="tiles for U2-D1015-RPPA-64C61" data-zoom><figcaption><code>U2-D1015-RPPA-64C61</code><br><span class="muted">rho -0.51 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0351.jpg" loading="lazy" alt="tiles for U2-D0351-SIG-990F9" data-zoom><figcaption><code>U2-D0351-SIG-990F9</code><br><span class="muted">rho +0.51 &middot; 0/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1292.jpg" loading="lazy" alt="tiles for U2-D1292-SIG-D367E" data-zoom><figcaption><code>U2-D1292-SIG-D367E</code><br><span class="muted">rho -0.51 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0197.jpg" loading="lazy" alt="tiles for U2-D0197-SIG-F8C61" data-zoom><figcaption><code>U2-D0197-SIG-F8C61</code><br><span class="muted">rho -0.50 &middot; 3/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1243.jpg" loading="lazy" alt="tiles for U2-D1243-RPPA-64C61" data-zoom><figcaption><code>U2-D1243-RPPA-64C61</code><br><span class="muted">rho -0.50 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0637.jpg" loading="lazy" alt="tiles for U2-D0637-SIG-55F4C" data-zoom><figcaption><code>U2-D0637-SIG-55F4C</code><br><span class="muted">rho +0.50 &middot; 0/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0471.jpg" loading="lazy" alt="tiles for U2-D0471-SIG-3F197" data-zoom><figcaption><code>U2-D0471-SIG-3F197</code><br><span class="muted">rho +0.50 &middot; 5/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0395.jpg" loading="lazy" alt="tiles for U2-D0395-SIG-F1DF9" data-zoom><figcaption><code>U2-D0395-SIG-F1DF9</code><br><span class="muted">rho -0.49 &middot; 6/6 models &middot; surv 1.15*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1190.jpg" loading="lazy" alt="tiles for U2-D1190-SIG-990F9" data-zoom><figcaption><code>U2-D1190-SIG-990F9</code><br><span class="muted">rho +0.49 &middot; 0/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0289.jpg" loading="lazy" alt="tiles for U2-D0289-SIG-F1DF9" data-zoom><figcaption><code>U2-D0289-SIG-F1DF9</code><br><span class="muted">rho +0.49 &middot; 6/6 models &middot; surv 0.83*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0923.jpg" loading="lazy" alt="tiles for U2-D0923-SIG-F896A" data-zoom><figcaption><code>U2-D0923-SIG-F896A</code><br><span class="muted">rho -0.49 &middot; 2/6 models &middot; surv 0.87*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0091.jpg" loading="lazy" alt="tiles for U2-D0091-SIG-F1DF9" data-zoom><figcaption><code>U2-D0091-SIG-F1DF9</code><br><span class="muted">rho +0.49 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0102.jpg" loading="lazy" alt="tiles for U2-D0102-SIG-D9E76" data-zoom><figcaption><code>U2-D0102-SIG-D9E76</code><br><span class="muted">rho +0.49 &middot; 2/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0860.jpg" loading="lazy" alt="tiles for U2-D0860-RPPA-64C61" data-zoom><figcaption><code>U2-D0860-RPPA-64C61</code><br><span class="muted">rho -0.48 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1404.jpg" loading="lazy" alt="tiles for U2-D1404-RPPA-64C61" data-zoom><figcaption><code>U2-D1404-RPPA-64C61</code><br><span class="muted">rho +0.48 &middot; 6/6 models &middot; surv 0.87*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1399.jpg" loading="lazy" alt="tiles for U2-D1399-RPPA-64C61" data-zoom><figcaption><code>U2-D1399-RPPA-64C61</code><br><span class="muted">rho +0.47 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0984.jpg" loading="lazy" alt="tiles for U2-D0984-RPPA-64C61" data-zoom><figcaption><code>U2-D0984-RPPA-64C61</code><br><span class="muted">rho -0.46 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0373.jpg" loading="lazy" alt="tiles for U2-D0373-RPPA-64C61" data-zoom><figcaption><code>U2-D0373-RPPA-64C61</code><br><span class="muted">rho -0.46 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0955.jpg" loading="lazy" alt="tiles for U2-D0955-RPPA-64C61" data-zoom><figcaption><code>U2-D0955-RPPA-64C61</code><br><span class="muted">rho -0.45 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0691.jpg" loading="lazy" alt="tiles for U2-D0691-RPPA-64C61" data-zoom><figcaption><code>U2-D0691-RPPA-64C61</code><br><span class="muted">rho +0.45 &middot; 6/6 models &middot; surv 0.90*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0633.jpg" loading="lazy" alt="tiles for U2-D0633-RPPA-64C61" data-zoom><figcaption><code>U2-D0633-RPPA-64C61</code><br><span class="muted">rho +0.45 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0751.jpg" loading="lazy" alt="tiles for U2-D0751-RPPA-64C61" data-zoom><figcaption><code>U2-D0751-RPPA-64C61</code><br><span class="muted">rho -0.44 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1274.jpg" loading="lazy" alt="tiles for U2-D1274-RPPA-64C61" data-zoom><figcaption><code>U2-D1274-RPPA-64C61</code><br><span class="muted">rho -0.43 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1105.jpg" loading="lazy" alt="tiles for U2-D1105-RPPA-64C61" data-zoom><figcaption><code>U2-D1105-RPPA-64C61</code><br><span class="muted">rho +0.43 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0832.jpg" loading="lazy" alt="tiles for U2-D0832-RPPA-64C61" data-zoom><figcaption><code>U2-D0832-RPPA-64C61</code><br><span class="muted">rho +0.43 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0907.jpg" loading="lazy" alt="tiles for U2-D0907-RPPA-64C61" data-zoom><figcaption><code>U2-D0907-RPPA-64C61</code><br><span class="muted">rho -0.43 &middot; 6/6 models &middot; surv 1.11*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1235.jpg" loading="lazy" alt="tiles for U2-D1235-RPPA-64C61" data-zoom><figcaption><code>U2-D1235-RPPA-64C61</code><br><span class="muted">rho +0.42 &middot; 6/6 models &middot; surv 0.84*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0261.jpg" loading="lazy" alt="tiles for U2-D0261-RPPA-64C61" data-zoom><figcaption><code>U2-D0261-RPPA-64C61</code><br><span class="muted">rho -0.42 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1035.jpg" loading="lazy" alt="tiles for U2-D1035-RPPA-64C61" data-zoom><figcaption><code>U2-D1035-RPPA-64C61</code><br><span class="muted">rho -0.42 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0713.jpg" loading="lazy" alt="tiles for U2-D0713-RPPA-64C61" data-zoom><figcaption><code>U2-D0713-RPPA-64C61</code><br><span class="muted">rho +0.42 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0507.jpg" loading="lazy" alt="tiles for U2-D0507-RPPA-64C61" data-zoom><figcaption><code>U2-D0507-RPPA-64C61</code><br><span class="muted">rho +0.42 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0125.jpg" loading="lazy" alt="tiles for U2-D0125-RPPA-64C61" data-zoom><figcaption><code>U2-D0125-RPPA-64C61</code><br><span class="muted">rho +0.42 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0987.jpg" loading="lazy" alt="tiles for U2-D0987-RPPA-64C61" data-zoom><figcaption><code>U2-D0987-RPPA-64C61</code><br><span class="muted">rho +0.42 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0799.jpg" loading="lazy" alt="tiles for U2-D0799-RPPA-64C61" data-zoom><figcaption><code>U2-D0799-RPPA-64C61</code><br><span class="muted">rho +0.42 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1185.jpg" loading="lazy" alt="tiles for U2-D1185-RPPA-64C61" data-zoom><figcaption><code>U2-D1185-RPPA-64C61</code><br><span class="muted">rho -0.41 &middot; 6/6 models &middot; surv 1.14*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0500.jpg" loading="lazy" alt="tiles for U2-D0500-RPPA-64C61" data-zoom><figcaption><code>U2-D0500-RPPA-64C61</code><br><span class="muted">rho +0.41 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0582.jpg" loading="lazy" alt="tiles for U2-D0582-RPPA-64C61" data-zoom><figcaption><code>U2-D0582-RPPA-64C61</code><br><span class="muted">rho +0.41 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0323.jpg" loading="lazy" alt="tiles for U2-D0323-RPPA-64C61" data-zoom><figcaption><code>U2-D0323-RPPA-64C61</code><br><span class="muted">rho +0.41 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0384.jpg" loading="lazy" alt="tiles for U2-D0384-RPPA-64C61" data-zoom><figcaption><code>U2-D0384-RPPA-64C61</code><br><span class="muted">rho +0.41 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0991.jpg" loading="lazy" alt="tiles for U2-D0991-RPPA-64C61" data-zoom><figcaption><code>U2-D0991-RPPA-64C61</code><br><span class="muted">rho +0.41 &middot; 6/6 models &middot; surv 0.89*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0520.jpg" loading="lazy" alt="tiles for U2-D0520-RPPA-64C61" data-zoom><figcaption><code>U2-D0520-RPPA-64C61</code><br><span class="muted">rho +0.41 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0406.jpg" loading="lazy" alt="tiles for U2-D0406-RPPA-64C61" data-zoom><figcaption><code>U2-D0406-RPPA-64C61</code><br><span class="muted">rho +0.40 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1049.jpg" loading="lazy" alt="tiles for U2-D1049-RPPA-64C61" data-zoom><figcaption><code>U2-D1049-RPPA-64C61</code><br><span class="muted">rho -0.40 &middot; 6/6 models &middot; surv 1.16*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0032.jpg" loading="lazy" alt="tiles for U2-D0032-RPPA-64C61" data-zoom><figcaption><code>U2-D0032-RPPA-64C61</code><br><span class="muted">rho +0.40 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1417.jpg" loading="lazy" alt="tiles for U2-D1417-RPPA-64C61" data-zoom><figcaption><code>U2-D1417-RPPA-64C61</code><br><span class="muted">rho -0.40 &middot; 6/6 models &middot; surv 1.19*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0412.jpg" loading="lazy" alt="tiles for U2-D0412-RPPA-64C61" data-zoom><figcaption><code>U2-D0412-RPPA-64C61</code><br><span class="muted">rho -0.40 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0104.jpg" loading="lazy" alt="tiles for U2-D0104-RPPA-64C61" data-zoom><figcaption><code>U2-D0104-RPPA-64C61</code><br><span class="muted">rho +0.40 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1468.jpg" loading="lazy" alt="tiles for U2-D1468-RPPA-64C61" data-zoom><figcaption><code>U2-D1468-RPPA-64C61</code><br><span class="muted">rho +0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0290.jpg" loading="lazy" alt="tiles for U2-D0290-RPPA-64C61" data-zoom><figcaption><code>U2-D0290-RPPA-64C61</code><br><span class="muted">rho -0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0419.jpg" loading="lazy" alt="tiles for U2-D0419-RPPA-64C61" data-zoom><figcaption><code>U2-D0419-RPPA-64C61</code><br><span class="muted">rho +0.39 &middot; 6/6 models &middot; surv 0.87*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1122.jpg" loading="lazy" alt="tiles for U2-D1122-RPPA-64C61" data-zoom><figcaption><code>U2-D1122-RPPA-64C61</code><br><span class="muted">rho -0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0753.jpg" loading="lazy" alt="tiles for U2-D0753-RPPA-64C61" data-zoom><figcaption><code>U2-D0753-RPPA-64C61</code><br><span class="muted">rho +0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0884.jpg" loading="lazy" alt="tiles for U2-D0884-RPPA-64C61" data-zoom><figcaption><code>U2-D0884-RPPA-64C61</code><br><span class="muted">rho +0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0750.jpg" loading="lazy" alt="tiles for U2-D0750-RPPA-64C61" data-zoom><figcaption><code>U2-D0750-RPPA-64C61</code><br><span class="muted">rho +0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0265.jpg" loading="lazy" alt="tiles for U2-D0265-RPPA-64C61" data-zoom><figcaption><code>U2-D0265-RPPA-64C61</code><br><span class="muted">rho +0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0173.jpg" loading="lazy" alt="tiles for U2-D0173-RPPA-64C61" data-zoom><figcaption><code>U2-D0173-RPPA-64C61</code><br><span class="muted">rho -0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0004.jpg" loading="lazy" alt="tiles for U2-D0004-RPPA-64C61" data-zoom><figcaption><code>U2-D0004-RPPA-64C61</code><br><span class="muted">rho -0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0314.jpg" loading="lazy" alt="tiles for U2-D0314-RPPA-64C61" data-zoom><figcaption><code>U2-D0314-RPPA-64C61</code><br><span class="muted">rho +0.39 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1454.jpg" loading="lazy" alt="tiles for U2-D1454-RPPA-64C61" data-zoom><figcaption><code>U2-D1454-RPPA-64C61</code><br><span class="muted">rho -0.38 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0959.jpg" loading="lazy" alt="tiles for U2-D0959-RPPA-64C61" data-zoom><figcaption><code>U2-D0959-RPPA-64C61</code><br><span class="muted">rho -0.38 &middot; 6/6 models &middot; surv 1.11*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0650.jpg" loading="lazy" alt="tiles for U2-D0650-RPPA-64C61" data-zoom><figcaption><code>U2-D0650-RPPA-64C61</code><br><span class="muted">rho -0.38 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1515.jpg" loading="lazy" alt="tiles for U2-D1515-RPPA-64C61" data-zoom><figcaption><code>U2-D1515-RPPA-64C61</code><br><span class="muted">rho +0.38 &middot; 6/6 models &middot; surv 0.88*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1255.jpg" loading="lazy" alt="tiles for U2-D1255-RPPA-64C61" data-zoom><figcaption><code>U2-D1255-RPPA-64C61</code><br><span class="muted">rho +0.38 &middot; 6/6 models &middot; surv 1.26*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1136.jpg" loading="lazy" alt="tiles for U2-D1136-RPPA-64C61" data-zoom><figcaption><code>U2-D1136-RPPA-64C61</code><br><span class="muted">rho +0.38 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0708.jpg" loading="lazy" alt="tiles for U2-D0708-RPPA-64C61" data-zoom><figcaption><code>U2-D0708-RPPA-64C61</code><br><span class="muted">rho +0.38 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0538.jpg" loading="lazy" alt="tiles for U2-D0538-RPPA-64C61" data-zoom><figcaption><code>U2-D0538-RPPA-64C61</code><br><span class="muted">rho +0.38 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0607.jpg" loading="lazy" alt="tiles for U2-D0607-RPPA-64C61" data-zoom><figcaption><code>U2-D0607-RPPA-64C61</code><br><span class="muted">rho +0.38 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1458.jpg" loading="lazy" alt="tiles for U2-D1458-RPPA-64C61" data-zoom><figcaption><code>U2-D1458-RPPA-64C61</code><br><span class="muted">rho +0.38 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0995.jpg" loading="lazy" alt="tiles for U2-D0995-RPPA-64C61" data-zoom><figcaption><code>U2-D0995-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0429.jpg" loading="lazy" alt="tiles for U2-D0429-RPPA-64C61" data-zoom><figcaption><code>U2-D0429-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0269.jpg" loading="lazy" alt="tiles for U2-D0269-RPPA-64C61" data-zoom><figcaption><code>U2-D0269-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1159.jpg" loading="lazy" alt="tiles for U2-D1159-RPPA-64C61" data-zoom><figcaption><code>U2-D1159-RPPA-64C61</code><br><span class="muted">rho +0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1383.jpg" loading="lazy" alt="tiles for U2-D1383-RPPA-64C61" data-zoom><figcaption><code>U2-D1383-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1147.jpg" loading="lazy" alt="tiles for U2-D1147-RPPA-64C61" data-zoom><figcaption><code>U2-D1147-RPPA-64C61</code><br><span class="muted">rho +0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1131.jpg" loading="lazy" alt="tiles for U2-D1131-RPPA-64C61" data-zoom><figcaption><code>U2-D1131-RPPA-64C61</code><br><span class="muted">rho +0.37 &middot; 6/6 models &middot; surv 0.87*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0601.jpg" loading="lazy" alt="tiles for U2-D0601-RPPA-64C61" data-zoom><figcaption><code>U2-D0601-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0776.jpg" loading="lazy" alt="tiles for U2-D0776-RPPA-64C61" data-zoom><figcaption><code>U2-D0776-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1433.jpg" loading="lazy" alt="tiles for U2-D1433-RPPA-64C61" data-zoom><figcaption><code>U2-D1433-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1299.jpg" loading="lazy" alt="tiles for U2-D1299-RPPA-64C61" data-zoom><figcaption><code>U2-D1299-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0960.jpg" loading="lazy" alt="tiles for U2-D0960-RPPA-64C61" data-zoom><figcaption><code>U2-D0960-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1233.jpg" loading="lazy" alt="tiles for U2-D1233-RPPA-64C61" data-zoom><figcaption><code>U2-D1233-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1329.jpg" loading="lazy" alt="tiles for U2-D1329-RPPA-64C61" data-zoom><figcaption><code>U2-D1329-RPPA-64C61</code><br><span class="muted">rho +0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1330.jpg" loading="lazy" alt="tiles for U2-D1330-RPPA-64C61" data-zoom><figcaption><code>U2-D1330-RPPA-64C61</code><br><span class="muted">rho +0.37 &middot; 6/6 models &middot; surv 0.86*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0414.jpg" loading="lazy" alt="tiles for U2-D0414-RPPA-64C61" data-zoom><figcaption><code>U2-D0414-RPPA-64C61</code><br><span class="muted">rho +0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0319.jpg" loading="lazy" alt="tiles for U2-D0319-RPPA-64C61" data-zoom><figcaption><code>U2-D0319-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1210.jpg" loading="lazy" alt="tiles for U2-D1210-RPPA-64C61" data-zoom><figcaption><code>U2-D1210-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_1514.jpg" loading="lazy" alt="tiles for U2-D1514-RPPA-64C61" data-zoom><figcaption><code>U2-D1514-RPPA-64C61</code><br><span class="muted">rho -0.37 &middot; 6/6 models &middot; surv 1.16*</span></figcaption></figure>
+      <figure class="gal-card"><img src="../figures/galleries/dim_0826.jpg" loading="lazy" alt="tiles for U2-D0826-RPPA-64C61" data-zoom><figcaption><code>U2-D0826-RPPA-64C61</code><br><span class="muted">rho -0.36 &middot; 6/6 models &middot; surv 1.13*</span></figcaption></figure>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Built with the <span style="color: var(--accent);">Pine</span> theme ·
+  TCGA Pan-Cancer WSI Embedding Analysis
+</footer>
+
+</body>
+</html>
