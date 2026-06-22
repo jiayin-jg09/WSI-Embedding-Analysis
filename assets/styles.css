@@ -559,3 +559,11 @@ footer a:hover { color: var(--accent); }
   margin: 12px auto 0; max-width: 720px;
   font-size: 0.78rem; line-height: 1.55; opacity: 0.85;
 }
+
+/* ---- ACKNOWLEDGEMENTS ---- */
+.citation {
+  color: var(--muted); font-size: 0.9rem; line-height: 1.6;
+  padding-left: 14px; border-left: 2px solid var(--border);
+}
+.ack-list { color: var(--muted); line-height: 1.75; max-width: 720px; }
+.ack-list strong { color: var(--text); font-weight: 600; }
