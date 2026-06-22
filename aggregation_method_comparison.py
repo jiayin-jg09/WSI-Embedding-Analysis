@@ -194,7 +194,24 @@ def main():
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--random-state", type=int, default=42)
     ap.add_argument("--limit", type=int, default=0, help="process only first N methods (smoke test)")
+    ap.add_argument("--pca", default=str(SWEEP_PCA),
+                    help="PCA n_components: int (e.g. 50) or float<1 (e.g. 0.95 = 95%% variance). "
+                         "Full-rigor uses 0.95.")
+    ap.add_argument("--models", default=SWEEP_MODEL,
+                    help="comma-separated survival models to sweep per method (e.g. CoxnetLasso,RSF). "
+                         "Full-rigor adds a second, non-Coxnet model.")
+    ap.add_argument("--tag", default="",
+                    help="suffix for output CSVs so a heavier run won't clobber the light-run files "
+                         "(e.g. --tag _calib -> survival_method_comparison_calib.csv)")
     args = ap.parse_args()
+
+    # pca_components: float<1 = variance fraction, else fixed int rank
+    pca_components = float(args.pca) if "." in args.pca else int(args.pca)
+    model_list = [m.strip() for m in args.models.split(",") if m.strip()]
+    surv_csv = SURV_CSV.replace(".csv", f"{args.tag}.csv")
+    class_csv = CLASS_CSV.replace(".csv", f"{args.tag}.csv")
+    print(f"PCA={pca_components} | models={model_list} | bootstrap={args.bootstrap_iters} | "
+          f"folds={args.folds} | out={surv_csv}", flush=True)
 
     os.makedirs(OUT_DIR, exist_ok=True)
     feats, methods, bd, meta = load_npz()
@@ -203,11 +220,11 @@ def main():
     clin = _clinical_lookup(CLINICAL)
     specs = _get_survival_models(args.random_state)
 
-    # resume: skip methods already in the survival CSV
+    # resume: skip (method, model) pairs already in the survival CSV
     done = set()
-    if os.path.exists(SURV_CSV):
-        prev = pd.read_csv(SURV_CSV)
-        done = set(prev["method"].tolist())
+    if os.path.exists(surv_csv):
+        prev = pd.read_csv(surv_csv)
+        done = set(zip(prev["method"], prev["model"]))
         print(f"Resuming — {len(done)} survival rows already present", flush=True)
 
     # grade label set (identical across methods)
@@ -217,32 +234,35 @@ def main():
 
     surv_rows, class_rows = [], []
     t0 = time.time()
-    baseline_done = "Cox_AgeSex_baseline" in done
+    baseline_done = ("Cox_AgeSex_baseline", "Cox_AgeSex") in done
 
     for mi, method in enumerate(methods):
-        if method in done:
-            continue
         print(f"\n[{mi+1}/{len(methods)}] {method}", flush=True)
         block = feats[:, mi * bd:(mi + 1) * bd]
-
-        # --- survival
         X, y, cancers, X_clin, pids = build_method_cohort(block, meta, clin)
-        metrics, _, _ = run_pooled_cv(
-            X, y, cancers, X_clin, specs[SWEEP_MODEL], k=args.folds,
-            random_state=args.random_state, n_bootstrap=args.bootstrap_iters,
-            pca_components=SWEEP_PCA)
-        metrics.pop("per_cancer_cindex", None)
-        surv_rows.append({"method": method, "model": SWEEP_MODEL, **metrics})
-        print(f"  survival: stratified C = {metrics['c_index_stratified']} | "
-              f"overall C = {metrics['c_index_overall']} "
-              f"[{metrics['ci_low']}, {metrics['ci_high']}]", flush=True)
+
+        # --- survival: one row per WSI model in the sweep
+        for model_name in model_list:
+            if (method, model_name) in done:
+                continue
+            ts = time.time()
+            metrics, _, _ = run_pooled_cv(
+                X, y, cancers, X_clin, specs[model_name], k=args.folds,
+                random_state=args.random_state, n_bootstrap=args.bootstrap_iters,
+                pca_components=pca_components)
+            metrics.pop("per_cancer_cindex", None)
+            surv_rows.append({"method": method, "model": model_name, **metrics})
+            print(f"  survival[{model_name}]: stratified C = {metrics['c_index_stratified']} | "
+                  f"overall C = {metrics['c_index_overall']} "
+                  f"[{metrics['ci_low']}, {metrics['ci_high']}] "
+                  f"({time.time()-ts:.1f}s)", flush=True)
 
         # clinical baseline once (method-independent; cohort is identical)
         if not baseline_done:
             bm, _, _ = run_pooled_cv(
                 X, y, cancers, X_clin, specs["Cox_AgeSex"], k=args.folds,
                 random_state=args.random_state, n_bootstrap=args.bootstrap_iters,
-                pca_components=SWEEP_PCA)
+                pca_components=pca_components)
             bm.pop("per_cancer_cindex", None)
             surv_rows.append({"method": "Cox_AgeSex_baseline",
                               "model": "Cox_AgeSex", **bm})
@@ -260,14 +280,14 @@ def main():
         print(f"  grade: best AUC = {auc:.4f} ({best})", flush=True)
 
         # checkpoint both CSVs after every method
-        _append_csv(SURV_CSV, surv_rows); surv_rows = []
-        _append_csv(CLASS_CSV, class_rows); class_rows = []
+        _append_csv(surv_csv, surv_rows); surv_rows = []
+        _append_csv(class_csv, class_rows); class_rows = []
         gc.collect()
         thermal_pause(args.cooldown)
 
     dt = (time.time() - t0) / 60
-    print(f"\nDONE in {dt:.1f} min. Wrote:\n  {SURV_CSV}\n  {CLASS_CSV}", flush=True)
-    _print_ranking()
+    print(f"\nDONE in {dt:.1f} min. Wrote:\n  {surv_csv}\n  {class_csv}", flush=True)
+    _print_ranking(surv_csv)
 
 
 def _append_csv(path, rows):
@@ -278,9 +298,9 @@ def _append_csv(path, rows):
     df.to_csv(path, mode="a", header=header, index=False)
 
 
-def _print_ranking():
-    if os.path.exists(SURV_CSV):
-        s = pd.read_csv(SURV_CSV)
+def _print_ranking(surv_csv=SURV_CSV):
+    if os.path.exists(surv_csv):
+        s = pd.read_csv(surv_csv)
         base = s[s["method"] == "Cox_AgeSex_baseline"]
         s = s[s["method"] != "Cox_AgeSex_baseline"].sort_values(
             "c_index_stratified", ascending=False)
