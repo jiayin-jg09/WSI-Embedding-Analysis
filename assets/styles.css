@@ -555,3 +555,7 @@ footer {
 }
 footer a { color: var(--muted); }
 footer a:hover { color: var(--accent); }
+.footer-legal {
+  margin: 12px auto 0; max-width: 720px;
+  font-size: 0.78rem; line-height: 1.55; opacity: 0.85;
+}
