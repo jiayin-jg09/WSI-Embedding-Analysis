@@ -337,6 +337,76 @@ def run_featdim(omic, outcome, X, cancer, time, event, args, rng):
     gc.collect(); thermal_pause(args.cooldown)
 
 
+def make_compare_figure():
+    """Name-free summary: do cross-modality feature-with-dimension pairs beat
+    same-space dimension-with-dimension pairs? Reads the committed-analysis CSVs
+    (gitignored) and emits one figure. Modality labels only -- no feature names."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"figure.facecolor": "white", "axes.facecolor": "white"})
+
+    # (label, csv-suffix). dim x dim is the same-space baseline.
+    sources = [
+        ("dim x dim", "dimdim"),
+        ("feature x dim\n(expression)", "featdim_expression"),
+        ("feature x dim\n(immune sig.)", "featdim_immune_signatures"),
+        ("feature x dim\n(proteomic)", "featdim_rppa"),
+    ]
+
+    def load(outcome, suffix):
+        p = os.path.join(DIR, f"interactions_{outcome}_{suffix}.csv")
+        if not os.path.exists(p):
+            return None
+        d = pd.read_csv(p)
+        return dict(beats=int(d.beats_null.sum()), n=len(d),
+                    med_delta=float(np.nanmedian(d.delta_metric)))
+
+    fig, (axA, axB) = plt.subplots(1, 2, figsize=(11, 4.2))
+    colors = ["#0d9488", "#94a3b8", "#94a3b8", "#94a3b8"]
+
+    # Panel A -- survival: pairs surviving the family-wise permutation null.
+    sa = [load("survival", s) for _, s in sources]
+    labs = [lab for lab, _ in sources]
+    beats = [r["beats"] if r else 0 for r in sa]
+    bars = axA.bar(range(len(labs)), beats, color=colors)
+    for b, v in zip(bars, beats):
+        axA.text(b.get_x() + b.get_width() / 2, v + 0.4, str(v),
+                 ha="center", va="bottom", fontsize=10, fontweight="bold")
+    axA.set_xticks(range(len(labs))); axA.set_xticklabels(labs, fontsize=8)
+    axA.set_ylabel("pairs beating permutation null  (of 150)")
+    axA.set_title("Survival: only same-space pairs survive the null", fontweight="bold", fontsize=10)
+    axA.set_ylim(0, max(beats) + 3 if max(beats) else 3)
+
+    # Panel B -- tumor: interactions screen significant but add ~nothing on held-out AUC.
+    sb = [load("tumor", s) for _, s in sources]
+    # proteomic tumor is degenerate (sparse measurement -> empty OVR null); drop it, note it.
+    keep = [(lab, r) for (lab, _), r in zip(sources, sb)
+            if r and r["n"] and not np.isnan(r["med_delta"])]
+    klabs = [lab for lab, _ in keep]
+    deltas = [r["med_delta"] for _, r in keep]
+    barsB = axB.bar(range(len(klabs)), deltas, color=colors[:len(klabs)])
+    for b, v in zip(barsB, deltas):
+        axB.text(b.get_x() + b.get_width() / 2, v, f"{v:+.4f}",
+                 ha="center", va="bottom", fontsize=9)
+    axB.set_xticks(range(len(klabs))); axB.set_xticklabels(klabs, fontsize=8)
+    axB.set_ylabel("median held-out AUC gain from interaction term")
+    axB.set_title("Tumor type: pairs significant but add ~0 over main effects",
+                  fontweight="bold", fontsize=10)
+    axB.axhline(0, color="#475569", lw=0.8)
+
+    fig.suptitle("Pairwise interaction screen: feature x dim vs dim x dim",
+                 fontweight="bold")
+    fig.text(0.5, 0.005,
+             "Proteomic tumor panel omitted (sparse measurement yields a degenerate null). "
+             "Counts/gains are within-cancer, cancer-stratified 5-fold.",
+             ha="center", fontsize=7.5, color="#475569")
+    fig.tight_layout(rect=(0, 0.03, 1, 0.96))
+    out = os.path.join("figures", "interactions_featdim_vs_dimdim.png")
+    fig.savefig(out, dpi=130, bbox_inches="tight"); plt.close(fig)
+    print(f"wrote {out}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--outcome", choices=["survival", "tumor", "both"], default="both")
@@ -346,8 +416,13 @@ def main():
     ap.add_argument("--top-n", type=int, default=150)
     ap.add_argument("--cooldown", type=float, default=1.0)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--compare-fig", action="store_true",
+                    help="just regenerate the feature x dim vs dim x dim summary figure from CSVs")
     args = ap.parse_args()
     os.makedirs(DIR, exist_ok=True)
+    if args.compare_fig:
+        make_compare_figure()
+        return
     rng = np.random.default_rng(args.seed)
 
     X, cancer, time, event = load_patients("mean")

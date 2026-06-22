@@ -335,6 +335,50 @@
     </div>
   </section>
 
+  <section id="interactions">
+    <h2>Do pairs of signals beat single ones?</h2>
+    <div class="concept-text">
+      <p>
+        Every model above leans mostly on each variable on its own. A natural worry: are we
+        missing <em>interactions</em> — cases where two signals only matter <em>together</em>?
+        And in particular, is the strongest pair a <strong>molecular feature paired with a
+        histology dimension</strong> (cross-modality), rather than two histology dimensions
+        (same-space)? We screened every pair for joint prediction, calibrated each against a
+        <strong>family-wise permutation null</strong> (the largest correlation you'd see by
+        chance across all pairs tested), and then asked whether the top pairs actually
+        <strong>add</strong> over the two single effects on held-out folds — all within-cancer,
+        cancer-stratified.
+      </p>
+      <p>
+        <strong>The answer is no, on both counts.</strong> For survival, only same-space
+        dimension×dimension pairs produce any interactions that clear the null at all (17 of
+        150); every cross-modality feature×dimension source — transcriptomic, immune, proteomic —
+        produces <strong>zero</strong>. So the hypothesis that a feature-paired-with-dimension is
+        the strongest interaction is <strong>not supported</strong>: those pairs screen no
+        stronger than dimension pairs, and weaker by the only criterion that survives multiple
+        testing. For tumor type, the screen lights up everywhere (pairs are easy to find when the
+        signal is already near-saturated), but adding the interaction term moves held-out AUC by a
+        rounding error — a median of a few ten-thousandths.
+      </p>
+    </div>
+    <figure class="concept-figure" style="max-width:760px;margin:1.25rem auto;">
+      <img src="../figures/interactions_featdim_vs_dimdim.png"
+           alt="Survival: only same-space pairs survive the permutation null; tumor interactions add ~0 AUC" data-zoom>
+      <figcaption>
+        Left: pairs surviving the family-wise null for survival — same-space pairs yield a
+        handful, cross-modality pairs yield none. Right: for tumor type, the interaction term adds
+        essentially nothing over the two main effects. Dimensions are shown as numbers and features
+        are de-identified by modality only.
+      </figcaption>
+    </figure>
+    <div class="callout">
+      <strong>Why this is reassuring, not disappointing.</strong> It means the simple
+      one-variable-at-a-time models on this site aren't leaving an obvious interaction on the
+      table — the predictive structure UNI2 embeddings carry for survival is largely additive
+      within a cancer type.
+    </div>
+  </section>
+
 </main>
 
 <footer>
