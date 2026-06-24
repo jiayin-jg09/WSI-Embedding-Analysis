@@ -39,6 +39,7 @@ DIR = os.path.join("results_v2", "dim_omics")
 CATALOG = os.path.join(DIR, "catalog.csv")
 NPZ = os.path.join("results_v2", "agg_full", "full_methods.npz")
 META = os.path.join("results_v2", "agg_full", "meta.csv")
+CLINICAL = "CLINICAL_FULL.parquet"
 H5_DIRS = ["TCGA UNI2 embeddings", "embeddings"]
 OUT = os.path.join("figures", "galleries")
 MANIFEST = os.path.join(DIR, "galleries_manifest.csv")
@@ -71,6 +72,16 @@ def index_svs(wsi_dir):
 def match_svs(h5_filename, svs_idx):
     stem = h5_filename[:-3] if h5_filename.endswith(".h5") else h5_filename
     return svs_idx.get(stem) or svs_idx.get(stem.split(".")[0])
+
+
+def slide_cancers(pids):
+    """Cancer code per slide (TCGA project_id minus the 'TCGA-' prefix), aligned to pids."""
+    clin = pd.read_parquet(CLINICAL)
+    if "participant_id" not in clin.columns:
+        clin.index.name = "participant_id"; clin = clin.reset_index()
+    proj = clin.drop_duplicates("participant_id").set_index("participant_id")["project_id"]
+    return np.array([str(proj.loc[p]).replace("TCGA-", "") if p in proj.index else "??"
+                     for p in pids])
 
 
 def case_block(tiles, grid, tile_px):
@@ -108,6 +119,16 @@ def main():
     ap.add_argument("--jpeg-quality", type=int, default=70)
     ap.add_argument("--cooldown", type=float, default=0.5)
     ap.add_argument("--force", action="store_true", help="rebuild montages that already exist")
+    ap.add_argument("--exclude-cancers", default="",
+                    help="comma list of cancer codes to drop from case ranking, e.g. COAD,READ,LIHC")
+    ap.add_argument("--cancers", default="",
+                    help="comma whitelist of cancer codes (overrides --exclude-cancers)")
+    ap.add_argument("--rank-within-cancer", action="store_true",
+                    help="z-score each dim within each kept cancer before ranking cases "
+                         "(diversifies tissue; matches the within-cancer catalog rho)")
+    ap.add_argument("--tag", default="",
+                    help="suffix for montage filenames + manifest, e.g. _other -> dim_0410_other.jpg "
+                         "(parallel set; will not collide with the base galleries)")
     ap.add_argument("--write-web", action="store_true")
     args = ap.parse_args()
 
@@ -136,6 +157,28 @@ def main():
     mb = npz["features"][:, methods.index("mean") * bd:(methods.index("mean") + 1) * bd]
     meta = pd.read_csv(META); tum = meta["sample_type"].values == "tumor"
     mb = mb[tum]; fnames = meta["filename"].values[tum]
+    pids = meta["participant_id"].values[tum]
+
+    # optional cancer filter + within-cancer ranking of cases
+    canc = slide_cancers(pids)
+    excl = {c.strip().upper() for c in args.exclude_cancers.split(",") if c.strip()}
+    incl = {c.strip().upper() for c in args.cancers.split(",") if c.strip()}
+    if incl:
+        keep_mask = np.isin(canc, list(incl))
+    elif excl:
+        keep_mask = ~np.isin(canc, list(excl))
+    else:
+        keep_mask = np.ones(len(canc), dtype=bool)
+    rank_mb = mb
+    if args.rank_within_cancer:
+        rank_mb = mb.astype(float).copy()
+        for c in np.unique(canc[keep_mask]):
+            m = canc == c
+            mu = rank_mb[m].mean(0); sd = rank_mb[m].std(0); sd[sd == 0] = 1
+            rank_mb[m] = (rank_mb[m] - mu) / sd
+    print(f"case pool: {int(keep_mask.sum())}/{len(canc)} slides "
+          f"(excl={sorted(excl)} incl={sorted(incl)}) | within_cancer={args.rank_within_cancer}",
+          flush=True)
 
     print(f"indexing .svs under {args.wsi_dir} ...", flush=True)
     svs_idx = index_svs(args.wsi_dir)
@@ -144,17 +187,27 @@ def main():
     montage_of = {}
     n_missing = 0
     for di, d in enumerate(dims):
-        fn = f"dim_{d:04d}.jpg"
+        fn = f"dim_{d:04d}{args.tag}.jpg"
         if not args.force and os.path.exists(os.path.join(OUT, fn)):
             montage_of[d] = fn
             print(f"  [{di+1}/{len(dims)}] dim {d}: exists, skip", flush=True)
             continue
-        cases = [fnames[i] for i in np.argsort(mb[:, d])[::-1][:args.top_cases]]
+        order = np.argsort(rank_mb[:, d])[::-1]
+        order = order[keep_mask[order]]
+        # walk the ranked list keeping only cases whose H5 + .svs are both present,
+        # until top_cases are collected -- backfills past slides missing on the drive
+        cases = []
+        for i in order:
+            s = fnames[i]; sp = match_svs(s, svs_idx)
+            if sp and h5_path(s):
+                cases.append((s, sp))
+                if len(cases) >= args.top_cases:
+                    break
+        if len(cases) < args.top_cases:
+            n_missing += args.top_cases - len(cases)
         blocks = []
-        for s in cases:
-            hp = h5_path(s); sp = match_svs(s, svs_idx)
-            if hp is None or sp is None:
-                n_missing += 1; continue
+        for s, sp in cases:
+            hp = h5_path(s)
             try:
                 with h5py.File(hp, "r") as h:
                     col = h["features"][0, :, d]
@@ -175,7 +228,7 @@ def main():
             gc.collect()
         if blocks:
             m = assemble(blocks, args.block_cols, args.block_grid, args.tile_px, args.gap)
-            fn = f"dim_{d:04d}.jpg"
+            fn = f"dim_{d:04d}{args.tag}.jpg"
             m.save(os.path.join(OUT, fn), quality=args.jpeg_quality)
             montage_of[d] = fn
             print(f"  [{di+1}/{len(dims)}] dim {d}: {fn} ({len(blocks)} cases)", flush=True)
@@ -196,18 +249,12 @@ def _hashed_code(dim, omic, feat_readable):
     return f"U2-D{int(dd):04d}-{ab}-{h}"
 
 
-def write_gallery_page():
-    """Rebuild the manifest + page from catalog.csv and the montages on disk, with
-    HASHED codes (so a stale feature-revealing code can never reach the site)."""
-    if not os.path.exists(CATALOG):
-        print("no catalog.csv; nothing to do"); return
-    cat = pd.read_csv(CATALOG)
-    cat["absrho"] = cat["rho"].abs(); cat["dimn"] = cat["dim"].map(dim_num)
-    rep = (cat.sort_values("absrho", ascending=False)
-              .drop_duplicates("dimn", keep="first").head(100))
+def _build_cards(rep, tag):
+    """Manifest rows + card HTML for the montages that exist for a given tag.
+    Codes are hashed; no feature/program names ever reach the page."""
     rows = []
     for _, r in rep.iterrows():
-        fn = f"dim_{int(r['dimn']):04d}.jpg"
+        fn = f"dim_{int(r['dimn']):04d}{tag}.jpg"
         if not os.path.exists(os.path.join(OUT, fn)):
             continue
         rows.append({"code": _hashed_code(r["dim"], r["omic"], r.get("feature_name", "")),
@@ -215,7 +262,6 @@ def write_gallery_page():
                      "surv_hr": r.get("surv_hr", ""), "surv_sig": r.get("surv_sig", ""),
                      "montage": fn})
     man = pd.DataFrame(rows)
-    man.to_csv(MANIFEST, index=False)
     cards = []
     for _, r in man.iterrows():
         surv = ""
@@ -231,7 +277,43 @@ def write_gallery_page():
             f'<figcaption><code>{r["code"]}</code><br>'
             f'<span class="muted">rho {float(r["rho"]):+.2f} &middot; '
             f'{r["n_models"]}/6 models{surv}</span></figcaption></figure>')
-    grid = "\n      ".join(cards)
+    return man, "\n      ".join(cards)
+
+
+def write_gallery_page(beyond_tag="_other"):
+    """Rebuild the manifest + page from catalog.csv and the montages on disk, with
+    HASHED codes (so a stale feature-revealing code can never reach the site). Emits a
+    second 'Beyond colon & liver' section if tagged montages exist."""
+    if not os.path.exists(CATALOG):
+        print("no catalog.csv; nothing to do"); return
+    cat = pd.read_csv(CATALOG)
+    cat["absrho"] = cat["rho"].abs(); cat["dimn"] = cat["dim"].map(dim_num)
+    rep = (cat.sort_values("absrho", ascending=False)
+              .drop_duplicates("dimn", keep="first").head(100))
+
+    man, grid = _build_cards(rep, "")
+    man.to_csv(MANIFEST, index=False)
+
+    beyond_man, beyond_grid = _build_cards(rep, beyond_tag)
+    beyond_section = ""
+    if len(beyond_man):
+        beyond_man.to_csv(MANIFEST.replace(".csv", f"{beyond_tag}.csv"), index=False)
+        beyond_section = f"""
+  <section id="galleries-beyond">
+    <h2 style="margin-top:8px;">Beyond colon &amp; liver</h2>
+    <p class="subtitle">
+      The same dimensions, shown in <em>other</em> cancers. The montages above rank cases by raw
+      slide-level value, which is dominated by colorectal and liver slides. Here we instead rank
+      cases <strong>within each cancer</strong> (matching the within-cancer correlations the catalog
+      reports) and exclude colon, rectum and liver, so each montage shows the same dimension in the
+      remaining cancers (chiefly stomach, cervix, adrenocortical, esophageal and bile-duct tissue).
+      Codes, rho and model counts are identical to the cards above &mdash; only the tissue differs.
+    </p>
+    <div class="gallery">
+      {beyond_grid}
+    </div>
+  </section>"""
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -290,16 +372,37 @@ def write_gallery_page():
       blocks). Cards are labeled by code only; the molecular feature is not shown. Click to enlarge.
     </p>
   </section>
+  <section id="attribution">
+    <div class="callout">
+      The whole-slide images shown here are based upon data generated by the
+      <a href="https://www.cancer.gov/tcga" target="_blank" rel="noopener">TCGA Research Network</a>
+      (https://www.cancer.gov/tcga) and were obtained from the
+      <a href="https://gdc.cancer.gov" target="_blank" rel="noopener">NCI Genomic Data Commons</a>
+      (https://gdc.cancer.gov).
+      <br>
+      Grossman RL, Heath AP, Ferretti V, Varmus HE, Lowy DR, Kibbe WA, Staudt LM. Toward a Shared
+      Vision for Cancer Genomic Data. <em>N Engl J Med.</em> 2016;375(12):1109&ndash;1112.
+      doi:<a href="https://doi.org/10.1056/NEJMp1607591" target="_blank" rel="noopener">10.1056/NEJMp1607591</a>
+    </div>
+  </section>
   <section id="galleries">
+    <h2 style="margin-top:8px;">Top dimensions</h2>
     <div class="gallery">
       {grid}
     </div>
-  </section>
+  </section>{beyond_section}
 </main>
 
 <footer>
   Built with the <span style="color: var(--accent);">Pine</span> theme ·
   TCGA Pan-Cancer WSI Embedding Analysis
+  <div class="footer-legal">
+    Results here are based in whole or part upon data generated by the
+    <a href="https://www.cancer.gov/tcga" target="_blank" rel="noopener">TCGA Research Network</a>.
+    Whole-slide images are de-identified public research data. For research and educational use only
+    &mdash; not for clinical or diagnostic use.
+    &middot; <a href="acknowledgements.html">Acknowledgements</a>
+  </div>
 </footer>
 
 </body>
