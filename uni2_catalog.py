@@ -153,7 +153,16 @@ def main():
     frames = [load_assoc(o) for o in OMICS]
     for f in frames:
         f["absrho"] = f["rho"].abs()
-    cat = pd.concat([f.sort_values("absrho", ascending=False).head(PER_OMIC) for f in frames],
+
+    def _select(omic, f):
+        f = f.sort_values("absrho", ascending=False)
+        # RPPA: one protein (BCL-XL) has the strongest within-cancer correlation across
+        # nearly every dimension, so a plain top-N collapses the whole RPPA section to a
+        # single protein. Keep the strongest dim PER protein so RPPA stays diverse.
+        if omic == "rppa":
+            f = f.drop_duplicates("feature")
+        return f.head(PER_OMIC)
+    cat = pd.concat([_select(o, f) for o, f in zip(OMICS, frames)],
                     ignore_index=True).sort_values("absrho", ascending=False).reset_index(drop=True)
     cat["feature_name"] = [readable(f, o, ens2hugo) for f, o in zip(cat["feature"], cat["omic"])]
     cat["code"] = [code("U2", d, o, fn)
