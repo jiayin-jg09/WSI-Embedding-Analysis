@@ -377,6 +377,17 @@
       table — the predictive structure UNI2 embeddings carry for survival is largely additive
       within a cancer type.
     </div>
+    <p style="margin-top:18px;">
+      <strong>We checked this three ways, and they all agree.</strong> (1) The pairwise screen
+      above — individual interactions don't survive a permutation null. (2) An explicit test: we
+      added every pairwise product of the top principal components to a penalized Cox model and
+      swept the count from 45 up to 3,160 interaction terms; they never beat the main-effects model
+      on held-out concordance, and beyond a couple hundred they <em>hurt</em> it (the extra terms
+      overfit). (3) The tree models on this page — Random Survival Forest and Gradient Boosting —
+      capture interactions automatically, and they don't beat the linear models either. Three
+      independent angles, one conclusion: for survival, the signal these embeddings carry is
+      <strong>additive</strong>.
+    </p>
   </section>
 
 </main>
